@@ -49,9 +49,6 @@ In this project:
  This is only for one model. If I would like to train another model (e.g. vanilla) it is an extra 1.7h = total of ~3.6h of computing.
  
 
-
-
-
 ## What is Mujoco
 Mujoco is a physics engine that reads a description of a world/environment from an XML file. In this file, we describe the obects such as the shape, color, mass, position etc. Mujoco will apply the physic: makes the objects fall, collide or get pushed. 
 
