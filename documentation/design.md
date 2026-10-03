@@ -8,7 +8,7 @@ This gave me an idea, why not build a robotic system that could help my mom prep
 ## Break down the problem
 First we need to understand how the box is, each box represents a day, each box contains 3 separations: morning, noon, evening, night. Every day, my aunt has pills she has to take but not at same period of the day: Monday she takes 2 pills in the morning and 1 at night, Tuesday only at noon etc. But the order is fixed and does not change from a week to another.
 
-The problem is even for the nurses, arranging the pills in the right side of the box can be tricky because the pills are hard to distinguish between them.
+The problem is even for the nurses, arranging the pills in the right side of the box can be tricky because the pills are hard to distinguish between them. For this project, I will start easy first and then try to bring more complexity. The pills are going to be colored with different colors to be distinguishible.
 
 Ultimately, once a box is correctly filled with the correct pills for a specific day, we need to stack all the boxes in correct order: Monday-> Sunday.
 
@@ -16,7 +16,7 @@ For this project, I need to establish a few things:
 
 1. Dimensions of the different containers + Dimensions of the gripper (including error position of the wrist)
 2. Which model I would use
-3. The dataset I will need to create(define one episode e.g. is it going to be a full sorting day ?)
+3. The dataset I will need to create(define one episode e.g. is it going to be a full sorting day ?) with an egocentric view using teleoperation from my leader robot with a wrist camera
 4. The resource I have available
 5. Post training process with the dataset
 6. Implement the model in Mujoco
@@ -36,13 +36,13 @@ Q2: The grasp. Watch yourself pick up a pill. How many fingers do you use, and h
   → What does your retargeting turn a fingertip pinch into? Is "gripper closed" when thumb and index finger touch a good
   enough rule for a 7 mm object?
 
-R2: Naturally, I use 2 fingers like a gripper. When I want to grab a pill, I grab it from the top (mostly from the z-axis or sometimes from the side). So the equivalent of my fingers grabbing the pill is my thumb and index are closed with the pill between those fingers. For this project, I suppose all pills are solids and not going to focus on the force I will apply, it won't be destroyed. Since I don't have tactile sensors on the gripper.
+R2: Naturally, I use 2 fingers like a gripper. When I want to grab a pill, I grab it from the top (mostly from the z-axis or sometimes from the side). So the equivalent of my fingers grabbing the pill is my thumb and index are closed with the pill between those fingers. For this project, I suppose all pills are solids and not going to focus on the force I will apply, it won't be destroyed. Since I don't have tactile sensors on the gripper. The fingertips are not touching when grabbing a pill, so the gripper is not going to fingertop each others. The closed threshold will be established once the pill is not falling from the gripper.
 
 Q3: The simulator. Does Mujoco or LIBERO contain a pill organizer, or anything close to one?
   → If not, what would you have to build, and how hard is it in MuJoCo with simple shapes (cylinders, a grid of boxes)? Does
   that change your answer to Q2 from last time (LIBERO vs. a simpler sim)?
 
-R3: According to Claude, there is no pill organizer. I will need to construct it. The easiest thing to do is using Mujoco and build it there.
+R3: There is no pill organizer to the best of my knowledge. I will need to construct it. The easiest thing to do is using Mujoco and build it there. I have always wanted to try Mujoco Simulator. Hopefully it won't need to much time, I am aiming at spending no more than a day and half.
 
 Q4: What is one episode? "Sort a whole week" means 7 days × 2–4 times × several pills: a very long horizon.
   → What's the smallest unit you'd record and evaluate? And how does the robot know what to do: one instruction per pill, or
@@ -55,11 +55,11 @@ Q5: Generalization with a small dataset. Say you have 3 pill types and 7 compart
   succeeded on a combination it never saw during training? (This is likely your answer to Q3 from last time: the thing that
   makes a reviewer read more carefully.)
 
-R5: According to the task description, the composition is fixed by the description, so there is only a single combination possible. The idea would be to create a small dataset with different combination according to the task description: I will start by one pill, different combination then progressively scale up the number of pills up to 4 with different combinations.
+R5: According to the task description, the composition is fixed by the description during training, so there is only a single combination possible. The idea would be to create a small dataset with different combination according to the task description: I will start by one pill, different combination then progressively scale up the number of pills up to 4 with different combinations. The idea is to use at inference the robot trained on a zero shot full new description, recognize the pull and able to place it in the right side of the box.
 
 Q6: Evaluation. Not all failures are equal.
 
-R6: I will keep the success rate as the main evaluation metric and also when I will create the dataset, I'll divide it into train, test, eval.
+R6: I will keep the success rate as the main evaluation metric and also when I will create the dataset, I'll divide it into train, test, eval. The model I will choose should be pre trained with massive dataset, so I will do a post training with my dataset in order to transfer learning.
 
 
 
