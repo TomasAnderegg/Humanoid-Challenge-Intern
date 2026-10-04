@@ -76,31 +76,34 @@ Value of min max recorded during calibration with LeRobot (Follower) (Units: tic
 | gripper       | 2016 | 2046 | 3530 |
 
 Same but for the leader (Units: tick): 
--------------------------------------------
-NAME            |    MIN |    POS |    MAX
-shoulder_pan    |    788 |   2096 |   3357
-shoulder_lift   |    820 |    839 |   3214
-elbow_flex      |    942 |   3157 |   3166
-wrist_flex      |    782 |   2527 |   3109
-gripper         |   2032 |   2046 |   3244
+
+| Name          |  Min |  Pos |  Max |
+|---------------|-----:|-----:|-----:|
+| shoulder_pan  |  788 | 2096 | 3357 |
+| shoulder_lift |  820 |  839 | 3214 |
+| elbow_flex    |  942 | 3157 | 3166 |
+| wrist_flex    |  782 | 2527 | 3109 |
+| gripper       | 2032 | 2046 | 3244 |
 
 Values in Mujoco (Units: rad):
--------------------------------------------
-NAME            |     MIN    |   POS  |    MAX
-shoulder_pan    |   -1.91986 |   -    |   1.91986
-shoulder_lift   |   -1.74533 |   -    |   1.74533
-elbow_flex      |   -1.69    |   -    |   1.69
-wrist_flex      |   -1.65806 |   -    |   1.65806
-gripper         |   -0.17453 |   -    |   1.74533
+
+| Name          |  Min (rad) | Pos |  Max (rad) |
+|---------------|-----------:|:---:|-----------:|
+| shoulder_pan  |   -1.91986 |  –  |    1.91986 |
+| shoulder_lift |   -1.74533 |  –  |    1.74533 |
+| elbow_flex    |   -1.69    |  –  |    1.69    |
+| wrist_flex    |   -1.65806 |  –  |    1.65806 |
+| gripper       |   -0.17453 |  –  |    1.74533 |
 
 Angle range for the follower: (Units: degree)
--------------------------------------------
-NAME            |     Real Span (°)    |   Mujoco span (°)  |    Gap (°)
-shoulder_pan    |        223.85        |       220.00       |     3.85
-shoulder_lift   |        211.72        |       200.00       |     11.72
-elbow_flex      |        194.32        |       193.66       |     0.66
-wrist_flex      |        206.63        |       190.00       |     16.63
-gripper         |        133.06        |       110.00       |     23.06
+
+| Name          | Real span (°) | MuJoCo span (°) | Gap (°) |
+|---------------|--------------:|----------------:|--------:|
+| shoulder_pan  |        223.85 |          220.00 |    3.85 |
+| shoulder_lift |        211.72 |          200.00 |   11.72 |
+| elbow_flex    |        194.32 |          193.66 |    0.66 |
+| wrist_flex    |        206.63 |          190.00 |   16.63 |
+| gripper       |        133.06 |          110.00 |   23.06 |
 
 I need to be faithfull between the follower arm and the one in the Mujoco sim. I will take the measured values and map it to Mujoco's. The robot uses a motor with 12 bit encorder, which means a 360° corresponds to 4096 ticks. For the gripper, it is an opening of ~133° 
 
@@ -118,14 +121,14 @@ Since the span of the gripper IRL is 133°. In Mujoco, it would be -10°(lower b
 
 
 I wanted to see if there are any measurement bias between the simulation and real hardware, so for a same pose of the robot, I visualize the joint values in the sim and IRL 2 times:
--------------------------------------------
-NAME            |      Real (°)         |  Mujoco(°)    |    |try_2 - try_1| (°)
-shoulder_pan    |        -2.95, 0.75    |       0       |     3.7
-shoulder_lift   |       -1.93, -0.35    |       0       |     1.6
-elbow_flex      |        6.68, 3.34     |       0       |     3.3
-wrist_flex      |        2.77, 4.00     |       0       |     1.2
-wrist_roll      |        -0.22, 3.56    |       0       |     3.8
 
+| Name          | Real, try 1 (°) | Real, try 2 (°) | MuJoCo (°) | \|try 2 − try 1\| (°) |
+|---------------|----------------:|----------------:|-----------:|----------------------:|
+| shoulder_pan  |           -2.95 |            0.75 |          0 |                   3.7 |
+| shoulder_lift |           -1.93 |           -0.35 |          0 |                   1.6 |
+| elbow_flex    |            6.68 |            3.34 |          0 |                   3.3 |
+| wrist_flex    |            2.77 |            4.00 |          0 |                   1.2 |
+| wrist_roll    |           -0.22 |            3.56 |          0 |                   3.8 |
 
 Based on those observations, I concluded that there is no significant bias between the real world and Mujoco except for the gripper. During the hardware calibration (checking the min and max range for the differents joint value) of the robot, the closed gripper represents 0, whereas in Mujoco the value 0 for the gripper does not correspond to a fully closed but slgithly open which create. By replicating the same pose than in Mujoco 2 times I got: 9.57% and  9.41% IRL corresponding to 0° in Mujoco. By applying the formula g_d(x=9.41)= 2.5° which can be neglected because the larger difference according to the table is ~4° and the gripper bias is lower. 
 Sign check: startinf from pose A, I moved each arm joint on the real robot, then matched it in the Mujoco viewer. The sim value had the same sign for all 5 joints.
