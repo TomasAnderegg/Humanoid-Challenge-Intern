@@ -123,9 +123,21 @@ shoulder_pan    |        -2.95, 0.75    |       0       |     3.7
 shoulder_lift   |       -1.93, -0.35    |       0       |     1.6
 elbow_flex      |        6.68, 3.34     |       0       |     3.3
 wrist_flex      |        2.77, 4.00     |       0       |     1.2
+wrist_roll      |        -0.22, 3.56    |       0       |     3.8
 
 
-Based on those observations, I concluded that there is no significant bias between the real world and Mujoco expect for the gripper. During the hardware calibration (checking the min and max range for the differents joint value) of the robot, the closed gripper represents 0, whereas in Mujoco the value 0 for the gripper does not correspond to a fully closed but slgithly open which create. By replicating the same pose than in Mujoco 2 times I got: 9.57% and  9.41% IRL corresponding to 0° in Mujoco. By applying the formula g_d(x=9.41)= 2.5° which can be neglected because the larger difference according to the table is ~4° and the gripper bias is lower. 
+Based on those observations, I concluded that there is no significant bias between the real world and Mujoco except for the gripper. During the hardware calibration (checking the min and max range for the differents joint value) of the robot, the closed gripper represents 0, whereas in Mujoco the value 0 for the gripper does not correspond to a fully closed but slgithly open which create. By replicating the same pose than in Mujoco 2 times I got: 9.57% and  9.41% IRL corresponding to 0° in Mujoco. By applying the formula g_d(x=9.41)= 2.5° which can be neglected because the larger difference according to the table is ~4° and the gripper bias is lower. 
+Sign check: startinf from pose A, I moved each arm joint on the real robot, then matched it in the Mujoco viewer. The sim value had the same sign for all 5 joints.
+
+I'll later compare the recorded camera video with the Mujoco replay video side by side. If the poses differ at the same moement, it means my mapping (unit, sign or gripper formula) is wrong for that joint.
+
+Suggestion: After converting the whole episode, you count how many values fall outside each joint's ctrlrange. (MuJoCo would silently clip
+    them.)
+
+  Written as a sentence:
+
+  ▎ "I'll compare every converted value with its joint's ctrlrange. If many are outside, it means the mapping is wrong, or the real
+  ▎ arm went beyond the sim's limits (possible for wrist_flex and the gripper, given my span table)."
 
 
 ## Questions for myself
