@@ -65,7 +65,7 @@ Since I don't have good capacities to post-train a model. I will use Google Cola
 ## Calibration: sim and real mapping 
 I need to get the real joint values by live reading them. The position of the arm should match the one in Mujoco. Once I have real joint values, I'll make sure they are in the same unit (radian): degree to radian to make Mujoco sim to work. I'll implement a offset transform that maps real joint values into Mujoco's with the corrected offest.
 
-Value of min max recorded during calibration with LeRobot (Follower):
+Value of min max recorded during calibration with LeRobot (Follower) (Units: tick):
 -------------------------------------------
 NAME            |    MIN |    POS |    MAX
 shoulder_pan    |    688 |   1988 |   3235
@@ -74,7 +74,7 @@ elbow_flex      |    904 |   3107 |   3115
 wrist_flex      |    847 |   2875 |   3198
 gripper         |   2016 |   2046 |   3530
 
-Same but for the leader: 
+Same but for the leader (Units: tick): 
 -------------------------------------------
 NAME            |    MIN |    POS |    MAX
 shoulder_pan    |    788 |   2096 |   3357
@@ -83,7 +83,7 @@ elbow_flex      |    942 |   3157 |   3166
 wrist_flex      |    782 |   2527 |   3109
 gripper         |   2032 |   2046 |   3244
 
-Values in Mujoco:
+Values in Mujoco (Units: rad):
 -------------------------------------------
 NAME            |     MIN    |   POS  |    MAX
 shoulder_pan    |   -1.91986 |   -    |   1.91986
@@ -92,7 +92,7 @@ elbow_flex      |   -1.69    |   -    |   1.69
 wrist_flex      |   -1.65806 |   -    |   1.65806
 gripper         |   -0.17453 |   -    |   1.74533
 
-Angle range for the follower:
+Angle range for the follower: (Units: degree)
 -------------------------------------------
 NAME            |     Real Span (°)    |   Mujoco span (°)  |    Gap (°)
 shoulder_pan    |        223.85        |       220.00       |     3.85
@@ -104,13 +104,28 @@ gripper         |        133.06        |       110.00       |     23.06
 I need to be faithfull between the follower arm and the one in the Mujoco sim. I will take the measured values and map it to Mujoco's. The robot uses a motor with 12 bit encorder, which means a 360° corresponds to 4096 ticks. For the gripper, it is an opening of ~133° 
 
 The tranform function from Hardware -> LeRobot Software:
-f(x) = (x-val_min)/(val_max - val_min)*133 
+f(x) = (x-val_min)/(val_max - val_min)*100 (%)
+This formula gives the percentage of the joint value span.
 
 NB: This formula only apply for the gripper the rest of the joint use degree value.
 
 The tranform function from LeRobot Software -> Mujoco:
-g(x) = 0.014391*x - 0.174
+g_d(x) = 1.3306*x - 10 (°) 
+g_r(x) = 0.02322*x - 0.174  (rad) then clip to Mujoco's interval 
 
+Since the span of the gripper IRL is 133°. In Mujoco, it would be -10°(lower bound) + 133° = 123°. We have two points (0,-10) meaning when the gripper is closed (0) in the simluation it translated by -10 and similarly for (100, 123.06). 
+
+
+I wanted to see if there are any measurement bias between the simulation and real hardware, so for a same pose of the robot, I visualize the joint values in the sim and IRL 2 times:
+-------------------------------------------
+NAME            |      Real (°)         |  Mujoco(°)    |    |try_2 - try_1| (°)
+shoulder_pan    |        -2.95, 0.75    |       0       |     3.7
+shoulder_lift   |       -1.93, -0.35    |       0       |     1.6
+elbow_flex      |        6.68, 3.34     |       0       |     3.3
+wrist_flex      |        2.77, 4.00     |       0       |     1.2
+
+
+Based on those observations, I concluded that there is no significant bias between the real world and Mujoco expect for the gripper. During the hardware calibration (checking the min and max range for the differents joint value) of the robot, the closed gripper represents 0, whereas in Mujoco the value 0 for the gripper does not correspond to a fully closed but slgithly open which create. By replicating the same pose than in Mujoco 2 times I got: 9.57% and  9.41% IRL corresponding to 0° in Mujoco. By applying the formula g_d(x=9.41)= 2.5° which can be neglected because the larger difference according to the table is ~4° and the gripper bias is lower. 
 
 
 ## Questions for myself
