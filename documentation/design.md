@@ -92,7 +92,26 @@ elbow_flex      |   -1.69    |   -    |   1.69
 wrist_flex      |   -1.65806 |   -    |   1.65806
 gripper         |   -0.17453 |   -    |   1.74533
 
+Angle range for the follower:
+-------------------------------------------
+NAME            |     Real Span (°)    |   Mujoco span (°)  |    Gap (°)
+shoulder_pan    |        223.85        |       220.00       |     3.85
+shoulder_lift   |        211.72        |       200.00       |     11.72
+elbow_flex      |        194.32        |       193.66       |     0.66
+wrist_flex      |        206.63        |       190.00       |     16.63
+gripper         |        133.06        |       110.00       |     23.06
+
 I need to be faithfull between the follower arm and the one in the Mujoco sim. I will take the measured values and map it to Mujoco's. The robot uses a motor with 12 bit encorder, which means a 360° corresponds to 4096 ticks. For the gripper, it is an opening of ~133° 
+
+The tranform function from Hardware -> LeRobot Software:
+f(x) = (x-val_min)/(val_max - val_min)*133 
+
+NB: This formula only apply for the gripper the rest of the joint use degree value.
+
+The tranform function from LeRobot Software -> Mujoco:
+g(x) = 0.014391*x - 0.174
+
+
 
 ## Questions for myself
 Q1: The scale problem. Do the numbers.

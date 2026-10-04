@@ -13,3 +13,4 @@ pip install mujoco
 
 pip install -e ".[feetech,core_scripts]"   # real SO101: motors + lerobot-record/teleoperate/calibrate
 pip install -e ".[peft]"                   # LoRA post-training instead of full fine-tuning
+pip install 'lerobot[viz]'
