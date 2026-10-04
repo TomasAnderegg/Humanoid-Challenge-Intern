@@ -1,0 +1,15 @@
+#Create an environment with Pythonb >=3.12
+
+conda create -y -n lerobot python=3.12      
+conda activate lerobot
+conda install -y ffmpeg -c conda-forge      
+conda install -y evdev -c conda-forge
+
+git clone https://github.com/huggingface/lerobot.git
+cd lerobot
+pip install -e ".[smolvla,training]"
+
+pip install mujoco
+
+pip install -e ".[feetech,core_scripts]"   # real SO101: motors + lerobot-record/teleoperate/calibrate
+pip install -e ".[peft]"                   # LoRA post-training instead of full fine-tuning

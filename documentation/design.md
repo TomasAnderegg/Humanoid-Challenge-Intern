@@ -59,6 +59,40 @@ The difference objects I need to simulate:
 4. Pills of different colours 
 5. Camera on the wrist of the arm
 
+## Resources and Data flow 
+Since I don't have good capacities to post-train a model. I will use Google Colab for post-training. But I need to move my dataset and model between my PC and Colab. The post-training will happen in Cola but the simulation will happen on my PC. The best way I found is pushing the recorded demos in Hugging Face, load it in Colab, post-train, push again on HF and run Mujoco. My PC -> HF Hub -> Colab -> HF Hub -> My PC. 
+
+## Calibration: sim and real mapping 
+I need to get the real joint values by live reading them. The position of the arm should match the one in Mujoco. Once I have real joint values, I'll make sure they are in the same unit (radian): degree to radian to make Mujoco sim to work. I'll implement a offset transform that maps real joint values into Mujoco's with the corrected offest.
+
+Value of min max recorded during calibration with LeRobot (Follower):
+-------------------------------------------
+NAME            |    MIN |    POS |    MAX
+shoulder_pan    |    688 |   1988 |   3235
+shoulder_lift   |    828 |    844 |   3237
+elbow_flex      |    904 |   3107 |   3115
+wrist_flex      |    847 |   2875 |   3198
+gripper         |   2016 |   2046 |   3530
+
+Same but for the leader: 
+-------------------------------------------
+NAME            |    MIN |    POS |    MAX
+shoulder_pan    |    788 |   2096 |   3357
+shoulder_lift   |    820 |    839 |   3214
+elbow_flex      |    942 |   3157 |   3166
+wrist_flex      |    782 |   2527 |   3109
+gripper         |   2032 |   2046 |   3244
+
+Values in Mujoco:
+-------------------------------------------
+NAME            |     MIN    |   POS  |    MAX
+shoulder_pan    |   -1.91986 |   -    |   1.91986
+shoulder_lift   |   -1.74533 |   -    |   1.74533
+elbow_flex      |   -1.69    |   -    |   1.69
+wrist_flex      |   -1.65806 |   -    |   1.65806
+gripper         |   -0.17453 |   -    |   1.74533
+
+I need to be faithfull between the follower arm and the one in the Mujoco sim. I will take the measured values and map it to Mujoco's. The robot uses a motor with 12 bit encorder, which means a 360° corresponds to 4096 ticks. For the gripper, it is an opening of ~133° 
 
 ## Questions for myself
 Q1: The scale problem. Do the numbers.
@@ -97,6 +131,12 @@ Imagine 3 pills colours (Red, blue, yellow) and 4 compartments (Morning, Noon, E
 
 ## Notes
 - I will need to define a fixed area during the teleoperation part where I will record the object. The robot will (hopefully) succeed because the object is inside it. If the object is outside the fixed area, it will mostly fail. The area will be 20 cm lenght and 20 cm width.
+- The XML of the SO101 arm, the actuator value of the range are in radian, but the files in lerobot for the so_follower are in degree ! Carefull (/home/tjga98/Humanoid-Challenge-Intern/lerobot/src/lerobot/robots/so_follower/config_so_follower.py). During calibration, I have to be carefull to match mujoco's and also the values on my hardware.
+- By default, MJCF files reads angles in degrees, but in this file it is in radian because of <compiler angle="radian" meshdir="assets" autolimits="true"/>
 
+## References
+1. https://mujoco.readthedocs.io/en/stable/python.html
+2. https://github.com/google-deepmind/mujoco_menagerie/blob/main/robotstudio_so101/so101.xml
+3. https://huggingface.co/docs/lerobot/en/installation
 
 
