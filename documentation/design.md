@@ -66,13 +66,14 @@ Since I don't have good capacities to post-train a model. I will use Google Cola
 I need to get the real joint values by live reading them. The position of the arm should match the one in Mujoco. Once I have real joint values, I'll make sure they are in the same unit (radian): degree to radian to make Mujoco sim to work. I'll implement a offset transform that maps real joint values into Mujoco's with the corrected offest.
 
 Value of min max recorded during calibration with LeRobot (Follower) (Units: tick):
--------------------------------------------
-NAME            |    MIN |    POS |    MAX
-shoulder_pan    |    688 |   1988 |   3235
-shoulder_lift   |    828 |    844 |   3237
-elbow_flex      |    904 |   3107 |   3115
-wrist_flex      |    847 |   2875 |   3198
-gripper         |   2016 |   2046 |   3530
+
+| Name          |  Min |  Pos |  Max |
+|---------------|-----:|-----:|-----:|
+| shoulder_pan  |  688 | 1988 | 3235 |
+| shoulder_lift |  828 |  844 | 3237 |
+| elbow_flex    |  904 | 3107 | 3115 |
+| wrist_flex    |  847 | 2875 | 3198 |
+| gripper       | 2016 | 2046 | 3530 |
 
 Same but for the leader (Units: tick): 
 -------------------------------------------
