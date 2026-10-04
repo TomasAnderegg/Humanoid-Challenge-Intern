@@ -144,6 +144,15 @@ Suggestion: After converting the whole episode, you count how many values fall o
   ▎ arm went beyond the sim's limits (possible for wrist_flex and the gripper, given my span table)."
 
 
+## Dataset protocol
+
+1. Setup: The robot will be on a black table, in front of it there will be a zone of area 20x20 cm^2 marked with white tape. The same environment will be reproduce in Mujoco
+2. The only camera will be the egocentric camera of the robot located at the wrist.
+3. The start position the robot will be the rest pose in Mujoco where all joint values are in 0. The pill are place in a random order inside the area. The pills cannot be one on top of the other but only next to at most.
+4. An episode is done when the task is completed e.g. the pill is in the right container.
+5. The instruction protocol will follow the same structure: "Put the {colour} pill in the {compartment} compartment."
+6. The time: 30s of motion, plus 15s to put the pill = at least 45s. Having enough variety for the policy to learn. SmolVLA docs talk about ~50 episodes for a single task when fine-tuning. Since it is the same task for me which is pick and place.
+7. Run a small pilot test 
 ## Questions for myself
 Q1: The scale problem. Do the numbers.
 
@@ -184,9 +193,32 @@ Imagine 3 pills colours (Red, blue, yellow) and 4 compartments (Morning, Noon, E
 - The XML of the SO101 arm, the actuator value of the range are in radian, but the files in lerobot for the so_follower are in degree ! Carefull (/home/tjga98/Humanoid-Challenge-Intern/lerobot/src/lerobot/robots/so_follower/config_so_follower.py). During calibration, I have to be carefull to match mujoco's and also the values on my hardware.
 - By default, MJCF files reads angles in degrees, but in this file it is in radian because of <compiler angle="radian" meshdir="assets" autolimits="true"/>
 
+## Annexe
+Prompt instruction for training: 
+
+Put the red pill in the morning compartment.
+Put the red pill in the noon compartment.
+Put the red pill in the evening compartment.
+Put the blue pill in the morning compartment.
+Put the blue pill in the evening compartment.
+Put the blue pill in the night compartment.
+Put the yellow pill in the noon compartment.
+Put the yellow pill in the evening compartment.
+Put the yellow pill in the night compartment.
+Put the green pill in the morning compartment.
+Put the green pill in the noon compartment.
+Put the green pill in the night compartment.
+
+Prompt instruction for test: 
+
+Put the red pill in the night compartment.
+Put the blue pill in the noon compartment.
+Put the yellow pill in the morning compartment.
+Put the green pill in the evening compartment.
+
 ## References
 1. https://mujoco.readthedocs.io/en/stable/python.html
 2. https://github.com/google-deepmind/mujoco_menagerie/blob/main/robotstudio_so101/so101.xml
 3. https://huggingface.co/docs/lerobot/en/installation
-
+4. https://arxiv.org/abs/2506.01844
 
