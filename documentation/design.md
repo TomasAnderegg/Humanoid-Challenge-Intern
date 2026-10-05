@@ -16,7 +16,7 @@ For this project, I need to establish a few things:
 
 1. Dimensions of the different containers + Dimensions of the gripper (including error position of the wrist)
 2. Which model I would use: SmolVLA because it is adapted for SO101 arm, efficient with low cost hardware and open source.
-3. The dataset I will need to create(define one episode e.g. is it going to be a full sorting day ?) with an egocentric view using teleoperation from my leader robot with a front camera
+3. The dataset I will need to create(define one episode e.g. is it going to be a full sorting day ?) with an egocentric view using teleoperation from my leader robot with a wrist camera
 4. The resource I have available
 5. Post training process with the dataset
 6. Implement the model in Mujoco
@@ -32,6 +32,7 @@ For this project, I need to establish a few things:
 In this project: 
 1. All pills are considered in different colours in the first time to be clearly visible.
 2. All pills are considered solid and compact. 
+3. All pills are considered to be Lego at first for easy manipulation and visual recognition. It is a good proxie with dimensions: 3.1cm length, 1.5cm width and 1cm height. Easy for the SO101 arm to pick and compatible with the compartement dimensions. 
 
 
 ### Ablation
@@ -60,7 +61,7 @@ The difference objects I need to simulate:
 2. The table where the arm is
 3. Pill organizer 
 4. Pills of different colours 
-5. Camera on the front of the arm
+5. Camera on the wrist of the arm
 
 ## Resources and Data flow 
 Since I don't have good capacities to post-train a model. I will use Google Colab for post-training. But I need to move my dataset and model between my PC and Colab. The post-training will happen in Cola but the simulation will happen on my PC. The best way I found is pushing the recorded demos in Hugging Face, load it in Colab, post-train, push again on HF and run Mujoco. My PC -> HF Hub -> Colab -> HF Hub -> My PC. 
@@ -150,12 +151,13 @@ Suggestion: After converting the whole episode, you count how many values fall o
 ## Dataset protocol
 
 1. Setup: The robot will be on a black table, in front of it there will be a zone of area 20x20 cm^2 marked with white tape. The same environment will be reproduce in Mujoco
-2. The only camera will be the egocentric camera of the robot located at the front.
-3. The start position the robot will be the rest pose in Mujoco where all joint values are in 0. The pill are place in a random order inside the area. The pills cannot be one on top of the other but only next to at most.
+2. The only camera will be the egocentric camera of the robot located at the wrist.
+3. The start position the robot will be the folded pose in Mujoco. The pill are place in a random order inside the area. The pills cannot be one on top of the other but only next to at most.
 4. An episode is done when the task is completed e.g. the pill is in the right container.
 5. The instruction protocol will follow the same structure: "Put the {colour} pill in the {compartment} compartment."
 6. The time: 30s of motion, plus 15s to put the pill = at least 45s. Having enough variety for the policy to learn. SmolVLA docs talk about ~50 episodes for a single task when fine-tuning. Since it is the same task for me which is pick and place.
 7. Run a small pilot test 
+
 ## Questions for myself
 Q1: The scale problem. Do the numbers.
 
