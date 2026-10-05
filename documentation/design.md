@@ -39,11 +39,16 @@ In this project:
 
 
 ### Evaluation
- The success rate will be evaluated for N rounds in Mujoco. One round corresponds to 4 episodes, Mujoco will put the object in a random position inside the specific zone, then the instruction to the robot will be given and perform the task. This is done 4 times in order to complete a round. I check whether a task has been completed successfully or not in a time limit for a given round. 
+ The success rate will be evaluated for N rollouts in Mujoco. One rollout corresponds to 1 episode for the trained policy, Mujoco will put the 4 coloured pills in a random position inside the specific 20x20cm area, then the instruction to the robot will be given, the policy will produce the joint value to produce the action and perform the task. At the end of a rollout, there will be a reset and the pills will be put in a random position again. I check whether a task has been completed successfully or not in a time limit for a given rollout. The test set are designed so the robot has never seen the task before.
 
  So to break it down more clearly:
- 1 round = 4 episodes: (4x)1 attempt by the robot with a duration of max 45s => 3min
- 24 rounds of training = 24x3min = 1h12
+ 1 rollout = 1 episode: 1 attempt by the robot with a duration of max 45s
+ There will be approaximatelly 320 rollouts: 20 rollouts per cell for all 16 cells (12 trained and 4 tests).
+
+ I will identify 3 types of failures: 
+ 1. Wrong colour
+ 2. Wrong cell (or compartement)
+ 3. Dropped or missed
  
 
 
@@ -196,9 +201,9 @@ Imagine 3 pills colours (Red, blue, yellow) and 4 compartments (Morning, Noon, E
 
 -A compartement can have 4 pills at the same time this allows to have more data diversity (3^4=81 possible rounds).  
 
-- For each colour pill, I will record 8 times a task e.g. Put the red pill in the morning compartemen, for this task I will record 8 times the pill in random position in the area, and execute the  task. I will have for a specific pill and all the train cell: 3x8 = 24 recordings. Since I have 4 pills, this makes a total of 4x24recordings = 96 episdodes recorded. Each recording lasts 45s, meaning the dataset is 1h15 long.
+- For each colour pill, I will record 8 times a task e.g. Put the red pill in the morning compartemen, for this task I will record 8 times the pill in random position in the area, and execute the  task. I will have for a specific pill and all the train cell: 3x8 = 24 recordings. Since I have 4 pills, this makes a total of 4x24recordings = 96 episdodes recorded for the train. Each recording lasts 45s, meaning the dataset is 1h15 long.
 
-- To compose a round = 4 episodes from balanced pill task. Each round uses one train cell per colour, chosen so that after 24 rounds, every train cell has appeared exactly 8 times. The order of the 4 episodes inside a round is random. A total of 24 rounds (=96/4) will be created. Knowing that a round = 4x45s=3min, 24 rounds will last 1h12.
+- To compose a round = 4 episodes from balanced pill task. Each round uses one train cell per colour, chosen so that after 24 rounds, every train cell has appeared exactly 8 times. The order of the 4 episodes inside a round is random. A total of 24 rounds (=96/4) will be created. Knowing that a round = 4x45s=3min, 24 rounds will last 1h12 for the train.
 
 ## Annexe
 Prompt instruction for training: 
