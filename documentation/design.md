@@ -39,15 +39,13 @@ In this project:
 
 
 ### Evaluation
- The success rate will be evaluated for N rollout in Mujoco. For one rollout mujoco will put the object in a random position inside the specific zone, then the instruction to the robot will be given and perform the task. I check whether the task has been completed successfully or not in a time limit. A task failed if it takes too long. I will first start with N = 20 rollouts. I will have 4 different pills. For each pill, a time limit of 20s per rollout. We will have 16 cells * N rollouts * 30s = 24000s -> ~6.7h
+ The success rate will be evaluated for N rounds in Mujoco. One round corresponds to 4 episodes, Mujoco will put the object in a random position inside the specific zone, then the instruction to the robot will be given and perform the task. This is done 4 times in order to complete a round. I check whether a task has been completed successfully or not in a time limit for a given round. 
 
  So to break it down more clearly:
- 1 rollout: 1 attempt by the robot = max 20s
- 1 compartements with 1 pill I will have 50 rollouts = 20 * 20 s = 6.6min
- 4 compartement with 4 pill: 4*4*20*20 = 1.7h
-
- This is only for one model. If I would like to train another model (e.g. vanilla) it is an extra 1.7h = total of ~3.6h of computing.
+ 1 round = 4 episodes: (4x)1 attempt by the robot with a duration of max 45s => 3min
+ 24 rounds of training = 24x3min = 1h12
  
+
 
 ## What is Mujoco
 Mujoco is a physics engine that reads a description of a world/environment from an XML file. In this file, we describe the obects such as the shape, color, mass, position etc. Mujoco will apply the physic: makes the objects fall, collide or get pushed. 
@@ -192,6 +190,15 @@ Imagine 3 pills colours (Red, blue, yellow) and 4 compartments (Morning, Noon, E
 - I will need to define a fixed area during the teleoperation part where I will record the object. The robot will (hopefully) succeed because the object is inside it. If the object is outside the fixed area, it will mostly fail. The area will be 20 cm lenght and 20 cm width.
 - The XML of the SO101 arm, the actuator value of the range are in radian, but the files in lerobot for the so_follower are in degree ! Carefull (/home/tjga98/Humanoid-Challenge-Intern/lerobot/src/lerobot/robots/so_follower/config_so_follower.py). During calibration, I have to be carefull to match mujoco's and also the values on my hardware.
 - By default, MJCF files reads angles in degrees, but in this file it is in radian because of <compiler angle="radian" meshdir="assets" autolimits="true"/>
+- One round will be composed of 4 episodes where each episode corresponds to a specific pill. At the begining, the 4 pills are randomly placed on the area, the robot will perform the 4 tasks. At the end of a round none pills should be on the table but inside their respective containers. Then a reset will be done by shuffling the pills and randomly placed on the area.
+- During training, the task will be randomly selected so the robot does not learn a rule concerning the order of the pill.
+- There will be a test cell, where during training the combination with that cell for a specific colour pill won't be avaible to test the model understanding.
+
+-A compartement can have 4 pills at the same time this allows to have more data diversity (3^4=81 possible rounds).  
+
+- For each colour pill, I will record 8 times a task e.g. Put the red pill in the morning compartemen, for this task I will record 8 times the pill in random position in the area, and execute the  task. I will have for a specific pill and all the train cell: 3x8 = 24 recordings. Since I have 4 pills, this makes a total of 4x24recordings = 96 episdodes recorded. Each recording lasts 45s, meaning the dataset is 1h15 long.
+
+- To compose a round = 4 episodes from balanced pill task. Each round uses one train cell per colour, chosen so that after 24 rounds, every train cell has appeared exactly 8 times. The order of the 4 episodes inside a round is random. A total of 24 rounds (=96/4) will be created. Knowing that a round = 4x45s=3min, 24 rounds will last 1h12.
 
 ## Annexe
 Prompt instruction for training: 
