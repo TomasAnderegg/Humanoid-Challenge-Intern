@@ -16,7 +16,7 @@ For this project, I need to establish a few things:
 
 1. Dimensions of the different containers + Dimensions of the gripper (including error position of the wrist)
 2. Which model I would use: SmolVLA because it is adapted for SO101 arm, efficient with low cost hardware and open source.
-3. The dataset I will need to create(define one episode e.g. is it going to be a full sorting day ?) with an egocentric view using teleoperation from my leader robot with a wrist camera
+3. The dataset I will need to create(define one episode e.g. is it going to be a full sorting day ?) with an egocentric view using teleoperation from my leader robot with a front camera
 4. The resource I have available
 5. Post training process with the dataset
 6. Implement the model in Mujoco
@@ -60,7 +60,7 @@ The difference objects I need to simulate:
 2. The table where the arm is
 3. Pill organizer 
 4. Pills of different colours 
-5. Camera on the wrist of the arm
+5. Camera on the front of the arm
 
 ## Resources and Data flow 
 Since I don't have good capacities to post-train a model. I will use Google Colab for post-training. But I need to move my dataset and model between my PC and Colab. The post-training will happen in Cola but the simulation will happen on my PC. The best way I found is pushing the recorded demos in Hugging Face, load it in Colab, post-train, push again on HF and run Mujoco. My PC -> HF Hub -> Colab -> HF Hub -> My PC. 
@@ -150,7 +150,7 @@ Suggestion: After converting the whole episode, you count how many values fall o
 ## Dataset protocol
 
 1. Setup: The robot will be on a black table, in front of it there will be a zone of area 20x20 cm^2 marked with white tape. The same environment will be reproduce in Mujoco
-2. The only camera will be the egocentric camera of the robot located at the wrist.
+2. The only camera will be the egocentric camera of the robot located at the front.
 3. The start position the robot will be the rest pose in Mujoco where all joint values are in 0. The pill are place in a random order inside the area. The pills cannot be one on top of the other but only next to at most.
 4. An episode is done when the task is completed e.g. the pill is in the right container.
 5. The instruction protocol will follow the same structure: "Put the {colour} pill in the {compartment} compartment."
@@ -203,30 +203,32 @@ Imagine 3 pills colours (Red, blue, yellow) and 4 compartments (Morning, Noon, E
 
 - For each colour pill, I will record 8 times a task e.g. Put the red pill in the morning compartemen, for this task I will record 8 times the pill in random position in the area, and execute the  task. I will have for a specific pill and all the train cell: 3x8 = 24 recordings. Since I have 4 pills, this makes a total of 4x24recordings = 96 episdodes recorded for the train. Each recording lasts 45s, meaning the dataset is 1h15 long.
 
+- Because of the quality of the camera, the texts (morning, noon, evening, night) are not visible well enough to recognize, so I change them by symbols: (morning -> circle, noon-> cross, evening -> triangle, night -> square). It is much easier to recognize on camera. 
+
 - To compose a round = 4 episodes from balanced pill task. Each round uses one train cell per colour, chosen so that after 24 rounds, every train cell has appeared exactly 8 times. The order of the 4 episodes inside a round is random. A total of 24 rounds (=96/4) will be created. Knowing that a round = 4x45s=3min, 24 rounds will last 1h12 for the train.
 
 ## Annexe
-Prompt instruction for training: 
+Prompt instruction for training:
 
-Put the red pill in the morning compartment.
-Put the red pill in the noon compartment.
-Put the red pill in the evening compartment.
-Put the blue pill in the morning compartment.
-Put the blue pill in the evening compartment.
-Put the blue pill in the night compartment.
-Put the yellow pill in the noon compartment.
-Put the yellow pill in the evening compartment.
-Put the yellow pill in the night compartment.
-Put the green pill in the morning compartment.
-Put the green pill in the noon compartment.
-Put the green pill in the night compartment.
+Put the red pill in the circle compartment.
+Put the red pill in the cross compartment.
+Put the red pill in the triangle compartment.
+Put the blue pill in the circle compartment.
+Put the blue pill in the triangle compartment.
+Put the blue pill in the square compartment.
+Put the yellow pill in the cross compartment.
+Put the yellow pill in the triangle compartment.
+Put the yellow pill in the square compartment.
+Put the green pill in the circle compartment.
+Put the green pill in the cross compartment.
+Put the green pill in the square compartment.
 
-Prompt instruction for test: 
+Prompt instruction for test:
 
-Put the red pill in the night compartment.
-Put the blue pill in the noon compartment.
-Put the yellow pill in the morning compartment.
-Put the green pill in the evening compartment.
+Put the red pill in the square compartment.
+Put the blue pill in the cross compartment.
+Put the yellow pill in the circle compartment.
+Put the green pill in the triangle compartment.
 
 ## References
 1. https://mujoco.readthedocs.io/en/stable/python.html
