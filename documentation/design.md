@@ -52,7 +52,6 @@ In this project:
  3. Dropped or missed
  
 
-
 ## What is Mujoco
 Mujoco is a physics engine that reads a description of a world/environment from an XML file. In this file, we describe the obects such as the shape, color, mass, position etc. Mujoco will apply the physic: makes the objects fall, collide or get pushed. 
 
@@ -65,6 +64,8 @@ The difference objects I need to simulate:
 
 ## Resources and Data flow 
 Since I don't have good capacities to post-train a model. I will use Google Colab for post-training. But I need to move my dataset and model between my PC and Colab. The post-training will happen in Cola but the simulation will happen on my PC. The best way I found is pushing the recorded demos in Hugging Face, load it in Colab, post-train, push again on HF and run Mujoco. My PC -> HF Hub -> Colab -> HF Hub -> My PC. 
+
+There will be a post_train.ipynb (on Colab) file which will load the dataset from HF, load the VLA model from HF, post-train it and load the checkoinpt to HF. A eval.ipynb (on Colab) file that will load the checkpoint from HF, the utils.py file with the angle conversion function will be load. The post-trained model will be evaluated on the test set, the joint values will be converted. 
 
 ## Calibration: sim and real mapping 
 I need to get the real joint values by live reading them. The position of the arm should match the one in Mujoco. Once I have real joint values, I'll make sure they are in the same unit (radian): degree to radian to make Mujoco sim to work. I'll implement a offset transform that maps real joint values into Mujoco's with the corrected offest.
