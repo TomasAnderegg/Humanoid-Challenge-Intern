@@ -63,7 +63,7 @@ The difference objects I need to simulate:
 5. Camera on the wrist of the arm
 
 ## Resources and Data flow 
-Since I don't have good capacities to post-train a model. I will use Google Colab for post-training. But I need to move my dataset and model between my PC and Colab. The post-training will happen in Cola but the simulation will happen on my PC. The best way I found is pushing the recorded demos in Hugging Face, load it in Colab, post-train, push again on HF and run Mujoco. My PC -> HF Hub -> Colab -> HF Hub -> My PC. 
+Since I don't have good capacities to post-train a model. I will use Google Colab for post-training. But I need to move my dataset and model between my PC and Colab. The post-training and the evaluation will happen in Colab but the simulation will happen on my PC. The best way I found is pushing the recorded demos in Hugging Face, load it in Colab, post-train, push again on HF and run Mujoco. My PC -> HF Hub -> Colab -> HF Hub -> My PC. 
 
 There will be a post_train.ipynb (on Colab) file which will load the dataset from HF, load the VLA model from HF, post-train it and load the checkoinpt to HF. A eval.ipynb (on Colab) file that will load the checkpoint from HF, the utils.py file with the angle conversion function will be load. The post-trained model will be evaluated on the test set, the joint values will be converted. 
 
@@ -159,6 +159,18 @@ Suggestion: After converting the whole episode, you count how many values fall o
 6. The time: 30s of motion, plus 15s to put the pill = at least 45s. Having enough variety for the policy to learn. SmolVLA docs talk about ~50 episodes for a single task when fine-tuning. Since it is the same task for me which is pick and place.
 7. Run a small pilot test 
 
+## Problems into solution:
+1. The resolution of the camera was not sufficient to read the text on the pill organizer, si it has been adapted with symbols to make sure the robot understand.
+2. During the data recording phase, I created a automatic file that runs every task 8 times to avoid making mistake during this step. Later during the post-training of the VLA, I encounter an error "IndexError: Invalid frame index=940 for streamIndex=0; must be less than 937". Analyze for all episodes the number of frame mismatch and extracted the problematic episodes. The inconsistency may be due to the automatic file that encoded the video while starting the next recording because the missing frames are always at the end. During the recording, the episode always ended up when the robot was folded once the task completed. Solution 1: A non official tool for trimming the videos https://github.com/krohling/lerobot-dataset-editor using an older version of the dataset format, Solution 2: re-record the problematic videos. For the sake of simplicity, solution 2 will be done in order to not incorporate new complicated errors. The fame obstructed videos were replicate with the pills in the exact position in order to not break the diversity of the pills position. The new dataset was then merged with the one with the obstructed episode were deleted.
+
+3. During post training with the T4 GPU, my Colab session disconnected due to time limit. An upgrade of the GPU allows me to reduce the post-train step.
+
+## Optimization
+The post-training was done using LoRa instead of the classical fine-tuning in order to prevent destruction of knowledge of the model iteself. This method reduces the number of parameters to train for a rank = 64, the model trained 2.97M parameters whereas SmolVLA has 453M parameters.
+
+A first T4 GPU with batch size 32 was used and no mixed precision used. A test of 100 steps was conducted and an average of 5.5s per step was observed. I wanted to understand which part of the process was taking too long: either the loading of the batch with the CPU (denoted by data_s) or the compute of the forward/backward pass with the GPU (denoted updt_s). With this GPU, I had only had access to 2 CPUs. An average of data_s = 5.15s and updt_s= 4.89s was observed. To reduce this numbers, I added a mixe precision (fp16) following the SmolVLA setup and reduced the num_workers to 2 (by default it was 4). I observed data_s = 0.004s and updt_s = 1.0, taking 1.03s per step. The author of the SmolVLA paper mentioned a fine-tuning with a bit less than 20'000 steps which in my case would have taken a total of less than 5h40. The number of step was choosen to be 10'000 in order for the model to see the data 4.8 times (=epochs). 
+
+I then updgraded the GPU to a A100 with high-RAM (12 CPUs). This allowed me to match the SmolVLA batch size of 64, increas the num_workers to 10 and changing the mixe precision to bf16. The total training last ~54min. 
 ## Questions for myself
 Q1: The scale problem. Do the numbers.
 
@@ -238,4 +250,6 @@ Put the green pill in the triangle compartment.
 2. https://github.com/google-deepmind/mujoco_menagerie/blob/main/robotstudio_so101/so101.xml
 3. https://huggingface.co/docs/lerobot/en/installation
 4. https://arxiv.org/abs/2506.01844
+5. https://huggingface.co/docs/peft/index
+6. https://huggingface.co/blog/samuellimabraz/peft-methods
 
