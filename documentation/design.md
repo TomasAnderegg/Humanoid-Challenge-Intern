@@ -63,9 +63,9 @@ The difference objects I need to simulate:
 5. Camera on the wrist of the arm
 
 ## Resources and Data flow 
-Since I don't have good capacities to post-train a model. I will use Google Colab for post-training. But I need to move my dataset and model between my PC and Colab. The post-training and the evaluation will happen in Colab but the simulation will happen on my PC. The best way I found is pushing the recorded demos in Hugging Face, load it in Colab, post-train, push again on HF and run Mujoco. My PC -> HF Hub -> Colab -> HF Hub -> My PC. 
+Since I don't have good capacities to post-train a model. I will use Google Colab for post-training. But I need to move my dataset and model between my PC and Colab. The post-training will happen in Colab but the simulation and evaluation will happen on my PC. The best way I found is pushing the recorded demos in Hugging Face, load it in Colab, post-train, push again on HF and run Mujoco. My PC -> HF Hub -> Colab -> HF Hub -> My PC. 
 
-There will be a post_train.ipynb (on Colab) file which will load the dataset from HF, load the VLA model from HF, post-train it and load the checkoinpt to HF. A eval.ipynb (on Colab) file that will load the checkpoint from HF, the utils.py file with the angle conversion function will be load. The post-trained model will be evaluated on the test set, the joint values will be converted. 
+There will be a post_train.ipynb (on Colab) file which will load the dataset from HF, load the VLA model from HF, post-train it and load the checkoinpt to HF. An eval.ipynb file that will load the checkpoint from HF, the utils.py file with the angle conversion function will be load. The post-trained model will be evaluated on the test set, the joint values will be converted. 
 
 ## Calibration: sim and real mapping 
 I need to get the real joint values by live reading them. The position of the arm should match the one in Mujoco. Once I have real joint values, I'll make sure they are in the same unit (radian): degree to radian to make Mujoco sim to work. I'll implement a offset transform that maps real joint values into Mujoco's with the corrected offest.
@@ -166,7 +166,7 @@ Suggestion: After converting the whole episode, you count how many values fall o
 3. During post training with the T4 GPU, my Colab session disconnected due to time limit. An upgrade of the GPU allows me to reduce the post-train step.
 
 ## Optimization
-The post-training was done using LoRa instead of the classical fine-tuning in order to prevent destruction of knowledge of the model iteself. This method reduces the number of parameters to train for a rank = 64, the model trained 2.97M parameters whereas SmolVLA has 453M parameters.
+The post-training was done using LoRa (via PEFT) instead of the classical fine-tuning in order to prevent destruction of knowledge of the model iteself. This method reduces the number of parameters to train for a rank = 64, the model trained 2.97M parameters whereas SmolVLA has 453M parameters.
 
 A first T4 GPU with batch size 32 was used and no mixed precision used. A test of 100 steps was conducted and an average of 5.5s per step was observed. I wanted to understand which part of the process was taking too long: either the loading of the batch with the CPU (denoted by data_s) or the compute of the forward/backward pass with the GPU (denoted updt_s). With this GPU, I had only had access to 2 CPUs. An average of data_s = 5.15s and updt_s= 4.89s was observed. To reduce this numbers, I added a mixe precision (fp16) following the SmolVLA setup and reduced the num_workers to 2 (by default it was 4). I observed data_s = 0.004s and updt_s = 1.0, taking 1.03s per step. The author of the SmolVLA paper mentioned a fine-tuning with a bit less than 20'000 steps which in my case would have taken a total of less than 5h40. The number of step was choosen to be 10'000 in order for the model to see the data 4.8 times (=epochs). 
 
