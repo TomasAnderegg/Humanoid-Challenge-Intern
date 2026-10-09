@@ -1,6 +1,7 @@
 import math
 import numpy as np
 
+#correct order in my data + Mujoco's order
 SHOULDER_PAN_IDX = 0
 SHOULDER_LIFT_IDX = 1
 ELBOW_FLEX_IDX = 2

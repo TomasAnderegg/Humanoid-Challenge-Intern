@@ -29,8 +29,9 @@ if __name__ == "__main__":
 
     # This command allow me to only download episode 0 without downloading the video
     ds = LeRobotDataset(repo_id= repo_id,episodes = [0], download_videos = False)
-    
-    
+
+    # print(ds.features)
+    print(ds)
     #convertion to Mujoco 
     
     actions_stack = np.stack(ds.hf_dataset['action'])
@@ -40,6 +41,7 @@ if __name__ == "__main__":
     model = mujoco.MjModel.from_xml_path(r"/home/tjga98/mujoco_menagerie/robotstudio_so101/scene.xml") #mjModel contains model description that do not change overt time!
     # print(dir(mujoco.MjModel))
     data = mujoco.MjData(model)
+    # print(dir(data))
 
     scene_option = mujoco.MjvOption()
     scene_option.flags[mujoco.mjtVisFlag.mjVIS_JOINT] = True
@@ -52,16 +54,34 @@ if __name__ == "__main__":
 
     frames = []
     mujoco.mj_resetData(model,data)
+    with mujoco.viewer.launch_passive(model, data) as viewer:
 
-    with mujoco.Renderer(model) as renderer:
-        while data.time < duration:
-            mujoco.mj_step(model,data)
-            if len(frames) < data.time*framerate:
-                # mujoco.mj_forward(model,data)
-                renderer.update_scene(data)
-                img = renderer.render()
-                frames.append(img)  
+        start = time.time()
+        print("start:", start)
+        while viewer.is_running() and time.time() - start < 30:
+            step_start = time.time()
 
+            with mujoco.Renderer(model) as renderer:
+                while data.time < duration:
+                    print(data.time)
+                    mujoco.mj_step(model,data)
+                    viewer.sync() #synchroniser les donnees. Quand on bouge le robot -> les valeurs sont changees aussi
+                    # print(dir(viewer))
+                    print(data.ctrl)
+                    print(data.qpos)
+                    if len(frames) < data.time*framerate:
+                        # mujoco.mj_forward(model,data)
+                        renderer.update_scene(data)
+                        img = renderer.render()
+                        # print(data.qpos)
+                        
+                        frames.append(img)
+                    time_until_next_step = model.opt.timestep - (time.time() - step_start)
+                    # print("opt.timestep:", model.opt.timestep, ",time:", time.time(), ",step start:", step_start, "---le moins:", time.time() - step_start, "le tout:", time_until_next_step)
+
+                    if time_until_next_step > 0:
+                        time.sleep(time_until_next_step)    
+                # print("after start:", time.time(), "----difference:", time.time() - start)
     # plt.imshow(frames); plt.axis("off"); plt.show() #To see the render in a .py file 
-    mujoco.viewer.launch(model, data)
+    # mujoco.viewer.launch(model, data)
     # mujoco.mj_kinematics(model,data) #pour reporter les shift ou modifications de l'emplacement dans le modele!
