@@ -56,6 +56,7 @@ if __name__ == "__main__":
                 action_idx = min(int(data.time*dataset_fps), len(action_converted)-1) #because I added hold, int(data.time*dataset_fps) will give a value out of bound
 
                 data.ctrl = action_converted[action_idx]
+                # print(data.ctrl[5])
                 # counter = counter + 1
 
                 # print("---time diff render:", time.time() - step_start)
@@ -88,7 +89,7 @@ if __name__ == "__main__":
 
      #Save MP4 and Image:
     media.write_video("episode0.mp4", frames, fps=dataset_fps)
-    plt.savefig("replay_ep0_tracking.png")
+    # plt.savefig("replay_ep0_tracking.png")
 
     for i in range(6):
         plt.subplot(3, 2, i + 1)
