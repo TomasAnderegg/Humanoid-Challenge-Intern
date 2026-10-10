@@ -165,6 +165,17 @@ Suggestion: After converting the whole episode, you count how many values fall o
 
 3. During post training with the T4 GPU, my Colab session disconnected due to time limit. An upgrade of the GPU allows me to reduce the post-train step.
 
+4. Google DeepMind provides a XML for the SO101 robot arm that I used for my simulation. When loading the first action of episode 0 to check wherether the joint order is correct I noticed a noisy movement. I started to print the joint values given to Mujoco and noticed some of the values where out of bound so I made sure before sending them to Mujoco they were clipped. But the probleme remains still. Since Mujoco's movemement works with a PD controller (qpos = robot's position in the simulation and ctrl = target position for the robot), I wanted for all joints if the command target is reached. I noticed that for joint 2, corresponding to elbow flex, there is a gap at the beginning (gap ~17°). Indicating a collision between geometric part provoking a repulsive force. Since it does not affect the purpose of the project. This problem is not treated as a priority and will be done at the end if time remains. 
+
+<p align="center">
+  <img src="/home/tjga98/Humanoid-Challenge-Intern/assets/replay_first_frames_ep0_tracking.png" width="500">
+
+
+  <img src="/home/tjga98/Humanoid-Challenge-Intern/assets/so101_tweaking_2_action0.gif" alt="Offset-Free Tracking Demo" width="80%">
+</p>
+
+5. The Mujoco functions were implemented following the tutorial presented in the Mujoco Python documentation and the Jupyter notebook. 
+
 ## Optimization
 The post-training was done using LoRa (via PEFT) instead of the classical fine-tuning in order to prevent destruction of knowledge of the model iteself. This method reduces the number of parameters to train for a rank = 64, the model trained 2.97M parameters whereas SmolVLA has 453M parameters.
 
