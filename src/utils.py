@@ -39,23 +39,23 @@ def smolva_to_mujoco_gripper(x):
 
 def sanity_check(idx, x):
     if idx == SHOULDER_PAN_IDX and (x < SHOULDER_PAN_MIN_VAL or x > SHOULDER_PAN_MAX_VAL):
-        print("Attention, out of Mujoco's bound for shoulder pan")
+        # print("Attention, out of Mujoco's bound for shoulder pan")
         x = np.clip(x,SHOULDER_PAN_MIN_VAL, SHOULDER_PAN_MAX_VAL )
 
     if idx == SHOULDER_LIFT_IDX and (x < SHOULDER_LIFT_MIN_VAL or x > SHOULDER_LIFT_MAX_VAL):
-        print("Attention, out of Mujoco's bound for shoulder lift")
+        # print("Attention, out of Mujoco's bound for shoulder lift")
         x = np.clip(x,SHOULDER_LIFT_MIN_VAL, SHOULDER_LIFT_MAX_VAL)
 
     if idx == ELBOW_FLEX_IDX and (x < ELBOW_FLEX_MIN_VAL or x > ELBOW_FLEX_MAX_VAL):
-        print("Attention, out of Mujoco's bound for elbow flex")
+        # print("Attention, out of Mujoco's bound for elbow flex")
         x = np.clip(x,ELBOW_FLEX_MIN_VAL, ELBOW_FLEX_MAX_VAL )
 
     if idx == WRIST_FLEX_IDX and (x < WRIST_FLEX_MIN_VAL or x > WRIST_FLEX_MAX_VAL):
-        print("Attention, out of Mujoco's bound for wrist flex")
+        # print("Attention, out of Mujoco's bound for wrist flex")
         x = np.clip(x, WRIST_FLEX_MIN_VAL, WRIST_FLEX_MAX_VAL)
     
     if idx == WRIST_ROLL_IDX and (x < WRIST_ROLL_MIN_VAL or x > WRIST_ROLL_MAX_VAL):
-        print("Attention, out of Mujoco's bound for wrist roll")
+        # print("Attention, out of Mujoco's bound for wrist roll")
         x = np.clip(x,WRIST_ROLL_MIN_VAL,WRIST_ROLL_MAX_VAL)
 
     return x

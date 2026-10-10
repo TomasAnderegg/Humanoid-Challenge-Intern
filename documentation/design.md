@@ -252,4 +252,5 @@ Put the green pill in the triangle compartment.
 4. https://arxiv.org/abs/2506.01844
 5. https://huggingface.co/docs/peft/index
 6. https://huggingface.co/blog/samuellimabraz/peft-methods
+7. https://colab.research.google.com/github/google-deepmind/mujoco/blob/main/python/tutorial.ipynb#scrollTo=slhf39lGxvDI
 
