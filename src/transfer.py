@@ -60,9 +60,10 @@ if __name__ == "__main__":
 
                 # print("---time diff render:", time.time() - step_start)
                 mujoco.mj_step(model,data)
-                viewer.sync() #synchroniser les donnees. Quand on bouge le robot -> les valeurs sont changees aussi
 
                 if len(frames) < data.time*dataset_fps:
+                    viewer.sync() #synchroniser les donnees. Quand on bouge le robot -> les valeurs sont changees aussi
+
                     # mujoco.mj_forward(model,data)
                     renderer.update_scene(data)
                     img = renderer.render()
