@@ -226,7 +226,7 @@ __marimo__/
 
 # Video
 *.mp4
-
+*.gif
 #Images
 *.png
 
