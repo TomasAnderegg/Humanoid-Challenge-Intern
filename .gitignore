@@ -227,6 +227,9 @@ __marimo__/
 # Video
 *.mp4
 
+#Images
+*.png
+
 # Data folders
 data/
 outputs/
