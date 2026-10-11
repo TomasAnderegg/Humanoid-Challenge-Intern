@@ -23,7 +23,8 @@ if __name__ == "__main__":
     action_converted = conversion(actions_stack=actions_stack)
     print("action converted:", len(action_converted))
     
-    model = mujoco.MjModel.from_xml_path(r"/home/tjga98/mujoco_menagerie/robotstudio_so101/scene.xml") #mjModel contains model description that do not change overt time!
+    # model = mujoco.MjModel.from_xml_path(r"/home/tjga98/mujoco_menagerie/robotstudio_so101/scene.xml") #mjModel contains model description that do not change overt time!
+    model = mujoco.MjModel.from_xml_path(r"/home/tjga98/mujoco_menagerie/robotstudio_so101/scene_pills.xml")
     # print(dir(mujoco.MjModel))
     data = mujoco.MjData(model)
     
@@ -43,7 +44,7 @@ if __name__ == "__main__":
 
     mujoco.mj_resetData(model,data)
     
-    data.qpos = action_converted[0] # to set initial robot pose
+    data.qpos[:6] = action_converted[0] # to set initial robot pose; [:6] corresponds to the robot joint values
     data.ctrl = action_converted[0] # to set initial robot pose
     
     with mujoco.viewer.launch_passive(model, data) as viewer:
