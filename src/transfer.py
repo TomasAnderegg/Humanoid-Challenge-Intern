@@ -14,14 +14,18 @@ if __name__ == "__main__":
     
     # This command allow me to only download episode 0 without downloading the video
     ds = LeRobotDataset(repo_id= repo_id,episodes = [0], download_videos = False)
+    # ds = LeRobotDataset(repo_id= repo_id,episodes = [30], download_videos = False)
 
-    # print(ds.features)
-    print(ds.fps)
+    # print(ds.meta.tasks)
+    # print(ds.fps)
     #convertion to Mujoco 
     
     actions_stack = np.stack(ds.hf_dataset['action'])
+    obs_stack = np.stack(ds.hf_dataset['observation.state'])
+    # print(obs_stack)
     action_converted = conversion(actions_stack=actions_stack)
-    print("action converted:", len(action_converted))
+    obs_converted = conversion(actions_stack=obs_stack)
+    # print("action converted:", len(action_converted))
     
     # model = mujoco.MjModel.from_xml_path(r"/home/tjga98/mujoco_menagerie/robotstudio_so101/scene.xml") #mjModel contains model description that do not change overt time!
     model = mujoco.MjModel.from_xml_path(r"/home/tjga98/mujoco_menagerie/robotstudio_so101/scene_pills.xml")
@@ -44,8 +48,17 @@ if __name__ == "__main__":
 
     mujoco.mj_resetData(model,data)
     
+    
     data.qpos[:6] = action_converted[0] # to set initial robot pose; [:6] corresponds to the robot joint values
     data.ctrl = action_converted[0] # to set initial robot pose
+
+    # k_circle=675
+    # # k_square = 690
+    # data.qpos[:6] = obs_converted[k_circle]
+    # data.ctrl = obs_converted[k_circle]
+    # mujoco.mj_kinematics(model,data)
+    # print("gripper pose irl dans sim:",data.site("gripperframe").xpos)
+    # print("pill ground:", data.geom("pill_yellow").xpos)
     
     with mujoco.viewer.launch_passive(model, data) as viewer:
 
@@ -59,8 +72,7 @@ if __name__ == "__main__":
                 data.ctrl = action_converted[action_idx]
                 # print(data.ctrl[5])
                 # counter = counter + 1
-
-                # print("---time diff render:", time.time() - step_start)
+                
                 mujoco.mj_step(model,data)
 
                 if len(frames) < data.time*dataset_fps:
@@ -82,24 +94,24 @@ if __name__ == "__main__":
             print("len frames:", len(frames))
 
 
-    t = np.array(times)
-    cmd = np.degrees(cmds)
-    act = np.degrees(actuals)
-    print("len(act):", len(act))
-    print("len(cmd):", len(cmd))
+    # t = np.array(times)
+    # cmd = np.degrees(cmds)
+    # act = np.degrees(actuals)
+    # # print("len(act):", len(act))
+    # # print("len(cmd):", len(cmd))
 
-     #Save MP4 and Image:
-    media.write_video("episode0.mp4", frames, fps=dataset_fps)
-    # plt.savefig("replay_ep0_tracking.png")
+    #  #Save MP4 and Image:
+    # media.write_video("episode0.mp4", frames, fps=dataset_fps)
+    # # plt.savefig("replay_ep0_tracking.png")
 
-    for i in range(6):
-        plt.subplot(3, 2, i + 1)
-        plt.plot(t, cmd[:, i], label="commanded")
-        plt.plot(t[:], act[:, i], label="actual")
-        plt.title(f"joint {i}")
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
+    # for i in range(6):
+    #     plt.subplot(3, 2, i + 1)
+    #     plt.plot(t, cmd[:, i], label="commanded")
+    #     plt.plot(t[:], act[:, i], label="actual")
+    #     plt.title(f"joint {i}")
+    # plt.legend()
+    # plt.tight_layout()
+    # plt.show()
 
    
     # plt.imshow(frames); plt.axis("off"); plt.show() #To see the render in a .py file 

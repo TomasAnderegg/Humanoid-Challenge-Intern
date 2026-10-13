@@ -24,6 +24,10 @@ WRIST_ROLL_MAX_VAL = 2.84121
 GRIPPER_MIN_VAL =-0.17453 
 GRIPPER_MAX_VAL =1.74533
 
+PAN_OFFSET_DEG  = 6.4 #degree
+
+SHOULDER_LIFT_OFFSET = 2.9 #degree
+
 def deg_to_rad(deg):
     return deg * math.pi / 180.0
 
@@ -73,8 +77,14 @@ def conversion(actions_stack):
             if j == GRIPPER_IDX:
                 action_to_mujoco[i][j]= smolva_to_mujoco_gripper(actions_stack[i][j])
                 # sanity_check(j, action_to_mujoco[i][j])
+            elif j == SHOULDER_PAN_IDX:
+                action_to_mujoco[i][j] = deg_to_rad(actions_stack[i][j]- PAN_OFFSET_DEG)
+                action_to_mujoco[i][j] = sanity_check(j, action_to_mujoco[i][j])
+            elif j == SHOULDER_LIFT_IDX:
+                action_to_mujoco[i][j] = deg_to_rad(actions_stack[i][j] - SHOULDER_LIFT_OFFSET)
+                action_to_mujoco[i][j] = sanity_check(j, action_to_mujoco[i][j])
             else: 
-                action_to_mujoco[i][j] = deg_to_rad(actions_stack[i][j])
+                action_to_mujoco[i][j] = deg_to_rad(actions_stack[i][j]) 
                 action_to_mujoco[i][j] = sanity_check(j, action_to_mujoco[i][j])
                 
     
