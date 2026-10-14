@@ -174,7 +174,112 @@ Suggestion: After converting the whole episode, you count how many values fall o
   <img src="/home/tjga98/Humanoid-Challenge-Intern/assets/so101_tweaking_2_action0.gif" alt="Offset-Free Tracking Demo" width="80%">
 </p>
 
-5. The Mujoco functions were implemented following the tutorial presented in the Mujoco Python documentation and the Jupyter notebook. 
+5. The Mujoco functions were implemented following the tutorial presented in the Mujoco Python documentation and the Jupyter notebook.
+
+6. After implementing the different geometries according to real measurement of the setup led to the following rendering on Mujoco: 
+
+<p align="center">
+  <img src="/home/tjga98/Humanoid-Challenge-Intern/assets/so101_and_scene_but_not_yet_there_disappear_2.gif" alt="Offset-Free Tracking Demo" width="80%">
+</p>
+
+We notice the red pill vanished suddently. This is due to the physics of the simulator. A pressure is applied to the red pill from the gripper against the compartment resulting into a propulsion of the red pill. By printing the position of the red pill during the full episode and focusing on the explosion part, we notice the position went from a position around [0.2 -0.08 0.03] meters to  [9.19, 0.41, 1.14] meters. This highlights two positions erros: the gripper is not reaching the right compartment (for that case, the robot has to put the red pill in the circle compartment, episode 0) and the gripper is to low thus touching the compartment and making the pill explodes. 
+
+I rewatched the real recording in this exact moment to check whether my gripper was that low and if the pill did touch or had contact with the compartment. It was not the case, conforming the positions errors. The position of the gripper was off by some centimeters. First of all, I visualize the contact point of the gripper in Mujoco to check whether the designer of this file put the contact point at the tip of the gripper:
+
+<p align="center">
+  <img src="/home/tjga98/Humanoid-Challenge-Intern/assets/so101_and_scene_but_not_yet_there_4.gif" alt="Offset-Free Tracking Demo" width="80%">
+</p>
+
+The contact point position is acceptable and the error probably comes from the command my script is sending to Mujoco.
+
+I decided to compare real values against sim values to check whether this problem might come from a calibration error. I selected a specific frame from the recording where the gripper is exactly above the circle compartment:  
+<p align="center">
+  <img src="/home/tjga98/Humanoid-Challenge-Intern/assets/so101_above_circle_comp.png" alt="Offset-Free Tracking Demo" width="80%">
+</p>
+Assuming the setup created in Mujoco is mapping correctly the real one. The value of the circle symbol is at [0.3545  0.01275 0.0085 ] meters. The gripper is then at position x = 0.3545m and y = 0.01275. The sim joint values are taken exactly from the follower arm, adapted to rad and then passed to the mujoco kinematic function to have the position Mujoco would have given in the simulation. This represent the sim value position. But first, I needed to extract the exact frame where the gripper is at the reference position, the index of that frame can be extracted by using the formula idx = fps*t_s where t_s is the time in the recording where the gripper is at the reference position and fps = 30 Hz. The sim position results:  [ 0.33657445 -0.03025805  0.0109119] meters. On Mujoco, the gripper is at x = 0.3365m and y = -0.0302m. This confirms a mismatch between the real and sim values and that the calibration needs to be corrected. I decided to focus first on the position on the xy-plane of the gripper. I calculated the angle error between the real and sim values: 
+
+$$
+\theta_{error} = \theta_{real} - \theta_{sim} = 7.18°
+$$
+
+where $\theta_{real} = arctan(0.0127/0.3545) = 2.05°$ and $\theta_{sim} = arctan(-0.0302/0.3365) = -5.13°$. I also wanted to know if the error propagates throught the distance, I run the same experiment for the squared compartment, a distance as far as possible. For that end, I selected episode 30 with the frame where the gripper is exactly above the square symbol. By proceeding the same way as the circle symbol, I obtained:
+
+$$
+\theta_{error} = \theta_{real} - \theta_{sim} = 5.77°
+$$
+
+where $\theta_{real} = arctan(-0.0667/0.3540) = -10.56°$ and $\theta_{sim} = arctan(-0.0978/0.3310) = -16.33°$.
+
+The notice the error is at the same magnitude as the circle one. I needed to verify which joints were responsible of that error. My first eyeball calibration from the beginning by comparing visually the pose of the robot highlighted some joints that might be problematic and the one that is interesting for the xy-plan movement is the shoulder_pan. An offset value of the mean from both experiment (circle and square errors) was substracted to match reality as the video illustrates:
+
+<p align="center">
+  <img src="/home/tjga98/Humanoid-Challenge-Intern/assets/so101_problem_xy_plan_solved_offset.gif" alt="Offset-Free Tracking Demo" width="80%">
+</p>
+
+This illustration still shows the problem on z axis, causing the pill explosion which is not what happens on the real recording. The same process has been done to identify the offset I applied for a specific joint. I took a reference from episode 0 where the tip of the gripper is touching the table. This allow me to easily say that at that specific frame, the gripper was at z = 0 m:
+<p align="center">
+  <img src="/home/tjga98/Humanoid-Challenge-Intern/assets/so101_gripper_z_reference_irl.png" alt="Offset-Free Tracking Demo" width="80%">
+</p>
+
+By extracting the index of that recording at that time, I was able to extract the joint values from the robot, convert them and apply the forward kinematic formula to get the position Mujoco would have given to the robot: $ z_{sim} = -2.1 cm$. Resulting in an error:
+
+$$
+z_{error} = z_{real} - z_{sim} = -0.8 cm
+$$
+
+where $z_{real} = 0 cm$ and $z_{sim} = -0.8 cm$.
+
+Repeating the same process for another position in episode 30 where the gripper touches the table, gives me a $z_{error} = -2.1 cm$.
+
+The error represent the offset I should apply to one of the joint. The joint respibles for that z deplacement noise are: shoulder_lift, elbow_flex and wrist_flex. They influence directly on the z-motion of the gripper: 
+
+<p align="center">
+  <img src="/home/tjga98/Humanoid-Challenge-Intern/assets/so101_scheme_z_correction_reasoning.jpeg" alt="Offset-Free Tracking Demo" width="80%">
+</p>
+
+A z error can grow linearly with respect to the arm lenght and the angle error the joint value introduce. As the illustation shows with the formula $ L = R*\theta$, the larger the arm lenght the most probable this joint is responsible for propagating the error to the gripper if it already contains an error value. Second of all, at the beginning, I map the span gap of every joint values, shoulder_lift and wrist_flex have the largest span gap, meaning when a real command is send to the joints and the real command is out of bound, it will be clipped in Mujoco, introducing errors.
+
+For the same scenario where the gripper picks a pill, I measured R by taking the distance from a joint to the gripper's tip. I took both episode 0 and 30 as previously to match the errors found:
+
+| Joint         | L at the near pickup (ep 0) | L at the far pickup (ep 30) |
+|---------------|----------------------------:|----------------------------:|
+| shoulder_lift | 0.222 m                     | 0.326 m                     |
+| elbow_flex    | 0.250 m                     | 0.238 m                     |
+| wrist_flex    | 0.159 m                     | 0.159 m                     |
+
+To spot the suspect, we calculate the angle for the wrist_flex and shoulder_lift joints as they are our 2 suspects. $\theta = L / R$ is applied for the 2 measurements done on ep0 and ep30. The guess would be, if an error exists, both $\theta$ values (near pickup and far pickup) look very similar: 
+
+| Joint         | θ at the near pickup (ep 0) | θ at the far pickup (ep 30) |
+|---------------|----------------------------:|----------------------------:|
+| shoulder_lift | 2.1°                        | 3.7°                        |
+| elbow_flex    | 1.8°                        | 5.1°                        |
+| wrist_flex    | 2.9°                        | 7.6°                        | 
+
+As the table above shows, the value for the shoulder_list are close to each other. 
+By judging the gripper through a video, I cannot tell better the position than $\pm 1$ cm. 
+
+<p align="center">
+  <img src="/home/tjga98/Humanoid-Challenge-Intern/assets/so101_scheme_uncertainty_reasoning.jpeg" alt="Offset-Free Tracking Demo" width="80%">
+</p>
+
+This illustration shows the reasoning about the angle uncertainty calculation: 
+
+$$
+\theta_u = \pm \frac{L}{R}, \qquad R = \sqrt{x^2 + y^2}
+$$
+
+where $L$ is the position uncertainty and $R$ is the distance from the robot origin to the point $(x, y)$. The following table presents the overall results:
+
+| Compartment | x (m) | y (m)  | r (m) | θ_u = ±L / r (L = 1 cm)    |
+|-------------|------:|-------:|------:|---------------------------:|
+| circle      | 0.354 |  0.013 | 0.354 | ±0.0282 rad (±1.62°)       |
+| square      | 0.354 | −0.067 | 0.360 | ±0.0278 rad (±1.59°)       |
+
+The angle uncertainty is $\approx \pm 1.6°$. According the shoulder_lift angles from near pickup and far pickup, the difference lie in this angle uncertainty range, making the shoulder_lift suspect number one. An offset of + 2.9° will be added for this specific joint resulting:
+
+<p align="center">
+  <img src="/home/tjga98/Humanoid-Challenge-Intern/assets/so101_problem_xyz_solved_offset.gif" alt="Offset-Free Tracking Demo" width="80%">
+</p>
 
 ## Optimization
 The post-training was done using LoRa (via PEFT) instead of the classical fine-tuning in order to prevent destruction of knowledge of the model iteself. This method reduces the number of parameters to train for a rank = 64, the model trained 2.97M parameters whereas SmolVLA has 453M parameters.
