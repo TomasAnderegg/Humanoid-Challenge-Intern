@@ -11,88 +11,139 @@ from random_pill_pos import random_pill_positions
 
 RANDOM_PILLS = True     # True: random layout; False: keep the positions from the XML/keyframe
 SEED = 10
-            
-if __name__ == "__main__":
-    
-    repo_id = "TomasAnderegg/so101_pill_sorting_merged_v2"
-    
-    # This command allow me to only download episode 0 without downloading the video
-    ds = LeRobotDataset(repo_id= repo_id,episodes = [0], download_videos = False)
-    # ds = LeRobotDataset(repo_id= repo_id,episodes = [30], download_videos = False)
+FOLDED_POSITION = (0.03329552, -1.74533, 1.69, 1.30343497, -0.11124077, -0.14770727)
+EPISODE_FPS = 30 #Hz
+DURATION =3.8 #second
+HOLD = 2 #second
 
-    # print(ds.meta.tasks)
-    # print(ds.fps)
-    #convertion to Mujoco 
-    
-    actions_stack = np.stack(ds.hf_dataset['action'])
-    obs_stack = np.stack(ds.hf_dataset['observation.state'])
-    # print(obs_stack)
-    action_converted = conversion(actions_stack=actions_stack)
-    obs_converted = conversion(actions_stack=obs_stack)
-    # print("action converted:", len(action_converted))
-    
-    # model = mujoco.MjModel.from_xml_path(r"/home/tjga98/mujoco_menagerie/robotstudio_so101/scene.xml") #mjModel contains model description that do not change overt time!
-    model = mujoco.MjModel.from_xml_path(r"/home/tjga98/mujoco_menagerie/robotstudio_so101/scene_pills.xml")
-    # print(dir(mujoco.MjModel))
-    data = mujoco.MjData(model)
-    
+SYMBOLS = ["circle", "cross", "triangle", "square"]
 
-    scene_option = mujoco.MjvOption()
-    scene_option.flags[mujoco.mjtVisFlag.mjVIS_JOINT] = True
+def compartment_of(model, data, pill):
+    """Return the compartment the pill is in ('circle', ...), or None if it's in none."""
+    p = data.body(pill).xpos
+    for s in SYMBOLS:
+        site = model.site(f"comp_{s}")
+        centre = data.site_xpos[site.id]
+        rot = data.site_xmat[site.id].reshape(3, 3)
+        local = rot.T @ (p - centre)          # pill position in the site's own frame
+        if np.all(np.abs(local) <= model.site_size[site.id]):   # inside the box on all 3 axes
+            return s
+    return None
 
-    duration = 3.8 #secondes
-    dataset_fps = ds.fps #Hz
-    hold = 2.0 #secondes
+def transfer_to_mujoco(model, data, vla_model, pill):
 
     frames = []
     times = [] 
     cmds = [] 
     actuals = [] 
-    counter = 0
 
-    mujoco.mj_resetData(model,data)
-    if RANDOM_PILLS:
-       rng = np.random.default_rng(SEED)
-       layout = random_pill_positions(model, data, rng)
-       print("Pill layout:", layout)
-
-
-    data.qpos[:6] = action_converted[0] # to set initial robot pose; [:6] corresponds to the robot joint values
-    data.ctrl = action_converted[0] # to set initial robot pose
-
-    
+    # 1 Rollout 
     with mujoco.viewer.launch_passive(model, data) as viewer:
+    
+            start = time.time()
+            with mujoco.Renderer(model) as renderer: #created outside the other while so it's not created every time
+    
+                while viewer.is_running() and (data.time < 1/EPISODE_FPS + HOLD):
+                    step_start = time.time()
+                    # action_idx = min(int(data.time*EPISODE_FPS), len(action_converted)-1) #because I added hold, int(data.time*dataset_fps) will give a value out of bound
+                    
+                    mujoco.mj_step(model,data)
+    
+                    if len(frames) < data.time*EPISODE_FPS:
+                        #Insert action policy VLA:
+                        one_action = vla_model
+                        action_converted = conversion(actions_stack=one_action)
+                        data.ctrl = action_converted
+                        viewer.sync() #synchroniser les donnees. Quand on bouge le robot -> les valeurs sont changees aussi
+    
+                        renderer.update_scene(data)
+                        img = renderer.render()
+                        frames.append(img)
+                        times.append(data.time)
+                        cmds.append(data.ctrl.copy())
+                        actuals.append(data.qpos[:6].copy())
+                    success = compartment_of(model, data, pill=pill)
 
-        start = time.time()
-        with mujoco.Renderer(model) as renderer: #created outside the other while so it's not created every time
+                done = True
+    return done
+    
+# if __name__ == "__main__":
+    
+#     repo_id = "TomasAnderegg/so101_pill_sorting_merged_v2"
+    
+#     # This command allow me to only download episode 0 without downloading the video
+#     ds = LeRobotDataset(repo_id= repo_id,episodes = [0], download_videos = False)
+#     # ds = LeRobotDataset(repo_id= repo_id,episodes = [30], download_videos = False)
 
-            while viewer.is_running() and (data.time < len(action_converted)/dataset_fps + hold):
-                step_start = time.time()
-                action_idx = min(int(data.time*dataset_fps), len(action_converted)-1) #because I added hold, int(data.time*dataset_fps) will give a value out of bound
-                print("circle:", data.site("comp_circle").xpos)
-                data.ctrl = action_converted[action_idx]
-                # print(data.ctrl[5])
-                # counter = counter + 1
+#     # print(ds.meta.tasks)
+#     # print(ds.fps)
+#     #convertion to Mujoco 
+    
+#     actions_stack = np.stack(ds.hf_dataset['action'])
+#     obs_stack = np.stack(ds.hf_dataset['observation.state'])
+#     # print(obs_stack)
+#     action_converted = conversion(actions_stack=actions_stack)
+#     obs_converted = conversion(actions_stack=obs_stack)
+#     # print("action converted:", len(action_converted))
+    
+#     # model = mujoco.MjModel.from_xml_path(r"/home/tjga98/mujoco_menagerie/robotstudio_so101/scene.xml") #mjModel contains model description that do not change overt time!
+#     model = mujoco.MjModel.from_xml_path(r"/home/tjga98/mujoco_menagerie/robotstudio_so101/scene_pills.xml")
+#     # print(dir(mujoco.MjModel))
+#     data = mujoco.MjData(model)
+    
+
+#     scene_option = mujoco.MjvOption()
+#     scene_option.flags[mujoco.mjtVisFlag.mjVIS_JOINT] = True
+
+#     duration = 3.8 #secondes
+#     dataset_fps = ds.fps #Hz
+#     hold = 2.0 #secondes
+
+#     frames = []
+#     times = [] 
+#     cmds = [] 
+#     actuals = [] 
+#     counter = 0
+
+#     mujoco.mj_resetData(model,data)
+#     if RANDOM_PILLS:
+#        rng = np.random.default_rng(SEED)
+#        layout = random_pill_positions(model, data, rng)
+#        print("Pill layout:", layout)
+
+ 
+#     data.qpos[:6] = action_converted[0] # to set initial robot pose; [:6] corresponds to the robot joint values
+#     data.ctrl = action_converted[0] # to set initial robot pose
+#     print("folded pose:", action_converted[0])
+#     with mujoco.viewer.launch_passive(model, data) as viewer:
+
+#         start = time.time()
+#         with mujoco.Renderer(model) as renderer: #created outside the other while so it's not created every time
+
+#             while viewer.is_running() and (data.time < len(action_converted)/dataset_fps + hold):
+#                 step_start = time.time()
+#                 action_idx = min(int(data.time*dataset_fps), len(action_converted)-1) #because I added hold, int(data.time*dataset_fps) will give a value out of bound
+#                 print("circle:", data.site("comp_circle").xpos)
+#                 data.ctrl = action_converted[action_idx]
+#                 # print(data.ctrl[5])
+#                 # counter = counter + 1
                 
-                mujoco.mj_step(model,data)
+#                 mujoco.mj_step(model,data)
 
-                if len(frames) < data.time*dataset_fps:
-                    viewer.sync() #synchroniser les donnees. Quand on bouge le robot -> les valeurs sont changees aussi
+#                 if len(frames) < data.time*dataset_fps:
+#                     viewer.sync() #synchroniser les donnees. Quand on bouge le robot -> les valeurs sont changees aussi
 
-                    # mujoco.mj_forward(model,data)
-                    renderer.update_scene(data)
-                    img = renderer.render()
-                    frames.append(img)
-                    # print(data.qpos)
+#                     renderer.update_scene(data)
+#                     img = renderer.render()
+#                     frames.append(img)
+#                     # print(data.qpos)
 
-                    # checkpoint:
-                    times.append(data.time)
-                    cmds.append(data.ctrl.copy())
-                    actuals.append(data.qpos[:6].copy())
+#                     times.append(data.time)
+#                     cmds.append(data.ctrl.copy())
+#                     actuals.append(data.qpos[:6].copy())
 
-            # print("counter value:", counter)
-            print("total time of the loop:", time.time() - start)
-            print("len frames:", len(frames))
+            # print("total time of the loop:", time.time() - start)
+            # print("len frames:", len(frames))
 
 
     # t = np.array(times)
