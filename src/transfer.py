@@ -58,7 +58,7 @@ if __name__ == "__main__":
     # data.ctrl = obs_converted[k_circle]
     # mujoco.mj_kinematics(model,data)
     # print("gripper pose irl dans sim:",data.site("gripperframe").xpos)
-    # print("pill ground:", data.geom("pill_yellow").xpos)
+    
     
     with mujoco.viewer.launch_passive(model, data) as viewer:
 
@@ -68,7 +68,7 @@ if __name__ == "__main__":
             while viewer.is_running() and (data.time < len(action_converted)/dataset_fps + hold):
                 step_start = time.time()
                 action_idx = min(int(data.time*dataset_fps), len(action_converted)-1) #because I added hold, int(data.time*dataset_fps) will give a value out of bound
-
+                print("circle:", data.site("comp_circle").xpos)
                 data.ctrl = action_converted[action_idx]
                 # print(data.ctrl[5])
                 # counter = counter + 1
