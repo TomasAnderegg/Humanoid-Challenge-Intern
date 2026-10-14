@@ -229,6 +229,7 @@ __marimo__/
 *.gif
 #Images
 *.png
+*.jpeg
 
 # Data folders
 data/
