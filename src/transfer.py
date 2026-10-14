@@ -7,6 +7,10 @@ import mujoco
 import mujoco.viewer
 import mediapy as media
 import matplotlib.pyplot as plt
+from random_pill_pos import random_pill_positions
+
+RANDOM_PILLS = True     # True: random layout; False: keep the positions from the XML/keyframe
+SEED = 10
             
 if __name__ == "__main__":
     
@@ -47,18 +51,15 @@ if __name__ == "__main__":
     counter = 0
 
     mujoco.mj_resetData(model,data)
-    
-    
+    if RANDOM_PILLS:
+       rng = np.random.default_rng(SEED)
+       layout = random_pill_positions(model, data, rng)
+       print("Pill layout:", layout)
+
+
     data.qpos[:6] = action_converted[0] # to set initial robot pose; [:6] corresponds to the robot joint values
     data.ctrl = action_converted[0] # to set initial robot pose
 
-    # k_circle=675
-    # # k_square = 690
-    # data.qpos[:6] = obs_converted[k_circle]
-    # data.ctrl = obs_converted[k_circle]
-    # mujoco.mj_kinematics(model,data)
-    # print("gripper pose irl dans sim:",data.site("gripperframe").xpos)
-    
     
     with mujoco.viewer.launch_passive(model, data) as viewer:
 
