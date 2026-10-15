@@ -6,8 +6,10 @@ import time
 import mujoco
 import mujoco.viewer
 import mediapy as media
+import torch 
 import matplotlib.pyplot as plt
 from random_pill_pos import random_pill_positions
+from lerobot.policies.factory import make_pre_post_processors
 
 RANDOM_PILLS = True     # True: random layout; False: keep the positions from the XML/keyframe
 SEED = 10
@@ -30,7 +32,7 @@ SYMBOLS = ["circle", "cross", "triangle", "square"]
 #             return s
 #     return None
 
-def transfer_to_mujoco(model, data, vla_model, pill):
+def transfer_to_mujoco(model, data, policy, preprocessor, postprocessor, task="task"):
 
     frames = []
     times = [] 
@@ -41,6 +43,8 @@ def transfer_to_mujoco(model, data, vla_model, pill):
                     "observation.images.front" : {"type": "VISUAL","shape": [3, 480,640]}
                     }
     action_converted = 0
+    # fine_tuning_ckpt = "TomasAnderegg/pill_sorting_post_trained_a100"
+    # preprocessor, postprocessor = make_pre_post_processors(policy, pretrained_path=fine_tuning_ckpt)
 
     # 1 Rollout 
     with mujoco.viewer.launch_passive(model, data) as viewer:
@@ -52,7 +56,7 @@ def transfer_to_mujoco(model, data, vla_model, pill):
         start = time.time()
         with mujoco.Renderer(model, height=480, width=640) as renderer: #created outside the other while so it's not created every time
 
-            while viewer.is_running() and (data.time < 1/EPISODE_FPS + HOLD):
+            while viewer.is_running() and (data.time < len(frames)/EPISODE_FPS + HOLD):
                 step_start = time.time()
                 # action_idx = min(int(data.time*EPISODE_FPS), len(action_converted)-1) #because I added hold, int(data.time*dataset_fps) will give a value out of bound
                 
@@ -60,7 +64,7 @@ def transfer_to_mujoco(model, data, vla_model, pill):
 
                 if len(frames) < data.time*EPISODE_FPS:
                     
-                    data.ctrl = action_converted
+                    
                     viewer.sync() #synchroniser les donnees. Quand on bouge le robot -> les valeurs sont changees aussi
 
                     renderer.update_scene(data, camera="wrist_cam")
@@ -69,13 +73,24 @@ def transfer_to_mujoco(model, data, vla_model, pill):
                     #Input of the VLA model
                     observation_state = data.qpos[:6].reshape(1,6)
                     observation_image = img
+
+                   
                     
                     input_features["observation.state"] = conversion(observation_state, opposite_of_rad= True) 
                     input_features["observation.images.front"] = observation_image #250x250
 
+                    obs = {
+                        "observation.state": torch.from_numpy(input_features["observation.state"]).float(),
+                        "observation.images.front": torch.from_numpy(input_features["observation.images.front"]).permute(2,0,1).float().div(255),  
+                        "task": task,
+                    }
+                    batch = preprocessor(obs)
+                    action = policy.select_action(batch)
+                    action = postprocessor(action)
+
                     #Insert action policy VLA:
-                    one_action = vla_model
-                    action_converted = conversion(actions_stack=one_action)
+                    action_converted = conversion(actions_stack=action.numpy())
+                    data.ctrl = action_converted.reshape(6,1) #data.ctrl is (6,)
 
                     frames.append(img)
                     times.append(data.time)

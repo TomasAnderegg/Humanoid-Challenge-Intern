@@ -10,7 +10,10 @@ import mediapy as media
 import matplotlib.pyplot as plt
 from random_pill_pos import random_pill_positions
 
-ROLLOUT = 10
+from lerobot.policies.smolvla.modeling_smolvla import SmolVLAPolicy
+from lerobot.policies.factory import make_pre_post_processors
+
+ROLLOUT = 4
 FOLDED_POSITION = (0.03329552, -1.74533, 1.69, 1.30343497, -0.11124077, -0.14770727)
 RANDOM_PILLS = True     # True: random layout; False: keep the positions from the XML/keyframe
 SEED = 10
@@ -28,8 +31,17 @@ EVAL_PROMPTS = { "Put the red pill in the square compartment.": SQUARE_POSE,
 
 if __name__ == "__main__":
 
-    for i in range(ROLLOUT):
+    fine_tuning_ckpt = "TomasAnderegg/pill_sorting_post_trained_a100"
+    policy = SmolVLAPolicy.from_pretrained(fine_tuning_ckpt)
+    preprocessor, postprocessor = make_pre_post_processors(policy.config, pretrained_path=fine_tuning_ckpt)
 
+    print(policy.config.input_features)    # check the image/state keys it expects
+    print(policy.config.output_features)
+
+    for i, task in enumerate(EVAL_PROMPTS):
+        
+        policy.reset()
+        
         # initialize the Mujoco env
         model = mujoco.MjModel.from_xml_path(r"/home/tjga98/mujoco_menagerie/robotstudio_so101/scene_pills.xml")
         data = mujoco.MjData(model)
@@ -55,5 +67,5 @@ if __name__ == "__main__":
         # policy_action = 0 #when the model will be loaded
         done = False
 
-        done = transfer_to_mujoco(model=model, data=data, vla_model=0, pill=list(layout.keys())[0])
+        done = transfer_to_mujoco(model=model, data=data, policy=policy, preprocessor=preprocessor, postprocessor=postprocessor,task = task)
     
