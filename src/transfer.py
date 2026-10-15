@@ -19,18 +19,8 @@ DURATION =3.8 #second
 HOLD = 2 #second
 
 SYMBOLS = ["circle", "cross", "triangle", "square"]
-
-# def compartment_of(model, data, pill):
-#     """Return the compartment the pill is in ('circle', ...), or None if it's in none."""
-#     p = data.body(pill).xpos
-#     for s in SYMBOLS:
-#         site = model.site(f"comp_{s}")
-#         centre = data.site_xpos[site.id]
-#         rot = data.site_xmat[site.id].reshape(3, 3)
-#         local = rot.T @ (p - centre)          # pill position in the site's own frame
-#         if np.all(np.abs(local) <= model.site_size[site.id]):   # inside the box on all 3 axes
-#             return s
-#     return None
+MAX_EPSIODE_TIME = 85.3 #second
+MARGIN = 10 #s
 
 def transfer_to_mujoco(model, data, policy, preprocessor, postprocessor, task="task"):
 
@@ -56,7 +46,7 @@ def transfer_to_mujoco(model, data, policy, preprocessor, postprocessor, task="t
         start = time.time()
         with mujoco.Renderer(model, height=480, width=640) as renderer: #created outside the other while so it's not created every time
 
-            while viewer.is_running() and (data.time < len(frames)/EPISODE_FPS + HOLD):
+            while viewer.is_running() and (data.time < MAX_EPSIODE_TIME + MARGIN):
                 step_start = time.time()
                 # action_idx = min(int(data.time*EPISODE_FPS), len(action_converted)-1) #because I added hold, int(data.time*dataset_fps) will give a value out of bound
                 
@@ -77,7 +67,7 @@ def transfer_to_mujoco(model, data, policy, preprocessor, postprocessor, task="t
                    
                     
                     input_features["observation.state"] = conversion(observation_state, opposite_of_rad= True) 
-                    input_features["observation.images.front"] = observation_image #250x250
+                    input_features["observation.images.front"] = observation_image #480x640
 
                     obs = {
                         "observation.state": torch.from_numpy(input_features["observation.state"]).float(),
@@ -88,9 +78,10 @@ def transfer_to_mujoco(model, data, policy, preprocessor, postprocessor, task="t
                     action = policy.select_action(batch)
                     action = postprocessor(action)
 
+                    
                     #Insert action policy VLA:
                     action_converted = conversion(actions_stack=action.numpy())
-                    data.ctrl = action_converted.reshape(6,1) #data.ctrl is (6,)
+                    data.ctrl = action_converted.reshape(6,1).squeeze(1) #data.ctrl is was (6,1) before. After squeeze: (6,)
 
                     frames.append(img)
                     times.append(data.time)

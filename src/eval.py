@@ -11,9 +11,11 @@ import matplotlib.pyplot as plt
 from random_pill_pos import random_pill_positions
 
 from lerobot.policies.smolvla.modeling_smolvla import SmolVLAPolicy
+from lerobot.configs import PreTrainedConfig
+from peft import PeftModel
 from lerobot.policies.factory import make_pre_post_processors
 
-ROLLOUT = 4
+ROLLOUT = 1
 FOLDED_POSITION = (0.03329552, -1.74533, 1.69, 1.30343497, -0.11124077, -0.14770727)
 RANDOM_PILLS = True     # True: random layout; False: keep the positions from the XML/keyframe
 SEED = 10
@@ -30,42 +32,81 @@ EVAL_PROMPTS = { "Put the red pill in the square compartment.": SQUARE_POSE,
                 }
 
 if __name__ == "__main__":
-
+    test = False
     fine_tuning_ckpt = "TomasAnderegg/pill_sorting_post_trained_a100"
-    policy = SmolVLAPolicy.from_pretrained(fine_tuning_ckpt)
-    preprocessor, postprocessor = make_pre_post_processors(policy.config, pretrained_path=fine_tuning_ckpt)
+
+    cfg = PreTrainedConfig.from_pretrained(fine_tuning_ckpt)
+
+    # 2. base SmolVLA weights, built with YOUR config
+    base = SmolVLAPolicy.from_pretrained("lerobot/smolvla_base", config=cfg)
+
+    # 3. add your LoRA adapter and merge it into the weights
+    policy = PeftModel.from_pretrained(base, fine_tuning_ckpt).merge_and_unload()
+    policy.eval()
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    policy.to(device)
+
+    # policy = SmolVLAPolicy.from_pretrained(fine_tuning_ckpt)
+    preprocessor, postprocessor = make_pre_post_processors(policy.config, pretrained_path=fine_tuning_ckpt, preprocessor_overrides={"device_processor": {"device": device}})
 
     print(policy.config.input_features)    # check the image/state keys it expects
     print(policy.config.output_features)
 
-    for i, task in enumerate(EVAL_PROMPTS):
+    #TEST with episode 0
+    if test :
+        ds = LeRobotDataset(repo_id= "TomasAnderegg/so101_pill_sorting_merged_v2",episodes = [0], download_videos = True)
+        one_frame = ds[625] #tested on frame 150 and 625
+        images= one_frame["observation.images.front"]
+        obs= one_frame["observation.state"]
+        task = one_frame["task"]
+        obs = {
+                "observation.state": obs,
+                "observation.images.front": images,  
+                "task": task,
+            }
+
+        batch = preprocessor(obs)
+        action = policy.select_action(batch)
+        action = postprocessor(action)
+
+        print("policy action:", action)
+        print("real action:", one_frame["action"])
+    else:
+        # print("----",one_frame)
+
+        # for i, task in enumerate(EVAL_PROMPTS):
+        for i in range(ROLLOUT):
+            task = "Put the green pill in the square compartment." #"Put the blue pill in the cross compartment."
+
+            policy.reset()
+
+            # initialize the Mujoco env
+            model = mujoco.MjModel.from_xml_path(r"/home/tjga98/mujoco_menagerie/robotstudio_so101/scene_pills.xml")
+            data = mujoco.MjData(model)
+
+            cam_id = model.camera("wrist_cam").id
+            print(model.cam_fovy[cam_id], model.cam_sensorsize[cam_id])   # expect 61.0 and [0. 0.]
+            
+            scene_option = mujoco.MjvOption()
+            scene_option.flags[mujoco.mjtVisFlag.mjVIS_JOINT] = True
+
+            mujoco.mj_resetData(model,data)
+
+            # Pose init 
+            # Robot initial pose :
+            data.qpos[:6] = FOLDED_POSITION # to set initial robot pose; [:6] corresponds to the robot joint values
+            data.ctrl = FOLDED_POSITION # to set initial robot pose
+            #Pill random pose:
+            if RANDOM_PILLS:
+                rng = np.random.default_rng(i)
+                layout = random_pill_positions(model, data, rng)
+                # print("Pill layout:", layout)
+
+
+            #Policy actions transfered to Mujoco
+
+            # policy_action = 0 #when the model will be loaded
+            done = False
+
+            done = transfer_to_mujoco(model=model, data=data, policy=policy, preprocessor=preprocessor, postprocessor=postprocessor,task = task)
         
-        policy.reset()
-        
-        # initialize the Mujoco env
-        model = mujoco.MjModel.from_xml_path(r"/home/tjga98/mujoco_menagerie/robotstudio_so101/scene_pills.xml")
-        data = mujoco.MjData(model)
-
-        scene_option = mujoco.MjvOption()
-        scene_option.flags[mujoco.mjtVisFlag.mjVIS_JOINT] = True
-
-        mujoco.mj_resetData(model,data)
-
-        # Pose init 
-        # Robot initial pose :
-        data.qpos[:6] = FOLDED_POSITION # to set initial robot pose; [:6] corresponds to the robot joint values
-        data.ctrl = FOLDED_POSITION # to set initial robot pose
-        #Pill random pose:
-        if RANDOM_PILLS:
-            rng = np.random.default_rng(i)
-            layout = random_pill_positions(model, data, rng)
-            # print("Pill layout:", layout)
-
-
-        #Policy actions transfered to Mujoco
-
-        # policy_action = 0 #when the model will be loaded
-        done = False
-
-        done = transfer_to_mujoco(model=model, data=data, policy=policy, preprocessor=preprocessor, postprocessor=postprocessor,task = task)
-    
