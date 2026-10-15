@@ -32,7 +32,7 @@ EVAL_PROMPTS = { "Put the red pill in the square compartment.": SQUARE_POSE,
                 }
 
 if __name__ == "__main__":
-    test = False
+    test = True
     fine_tuning_ckpt = "TomasAnderegg/pill_sorting_post_trained_a100"
 
     cfg = PreTrainedConfig.from_pretrained(fine_tuning_ckpt)
@@ -56,6 +56,18 @@ if __name__ == "__main__":
     if test :
         ds = LeRobotDataset(repo_id= "TomasAnderegg/so101_pill_sorting_merged_v2",episodes = [0], download_videos = True)
         one_frame = ds[625] #tested on frame 150 and 625
+        # print("-------------",ds.meta.tasks)
+
+        import numpy as np
+        batch = ds.hf_dataset.with_format("numpy")[:]
+        st, ep = batch["observation.state"], batch["episode_index"]
+        starts = np.array([st[ep == e][0] for e in np.unique(ep)])
+        np.set_printoptions(precision=1, suppress=True)
+        print("names:", ds.meta.features["observation.state"]["names"])
+        print("start pose, mean:", starts.mean(0))
+        print("start pose, min: ", starts.min(0))
+        print("start pose, max: ", starts.max(0))
+
         images= one_frame["observation.images.front"]
         obs= one_frame["observation.state"]
         task = one_frame["task"]
