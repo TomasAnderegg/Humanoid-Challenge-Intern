@@ -15,6 +15,17 @@ FOLDED_POSITION = (0.03329552, -1.74533, 1.69, 1.30343497, -0.11124077, -0.14770
 RANDOM_PILLS = True     # True: random layout; False: keep the positions from the XML/keyframe
 SEED = 10
 
+SQUARE_POSE = [ 0.3545, -0.06675, 0.0085 ]
+TRIANGLE_POSE = [ 0.3545, -0.04025, 0.0085 ]
+CIRCLE_POSE = [0.3545, 0.01275, 0.0085 ]
+CROSS_POSE = [ 0.3545, -0.01375, 0.0085 ]
+
+EVAL_PROMPTS = { "Put the red pill in the square compartment.": SQUARE_POSE,
+                "Put the blue pill in the cross compartment.": CROSS_POSE,
+                "Put the yellow pill in the circle compartment.": CIRCLE_POSE,
+                "Put the green pill in the triangle compartment.": TRIANGLE_POSE
+                }
+
 if __name__ == "__main__":
 
     for i in range(ROLLOUT):
@@ -40,6 +51,7 @@ if __name__ == "__main__":
 
 
         #Policy actions transfered to Mujoco
+
         # policy_action = 0 #when the model will be loaded
         done = False
 

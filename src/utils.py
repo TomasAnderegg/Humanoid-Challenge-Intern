@@ -34,12 +34,17 @@ def deg_to_rad(deg):
 def rad_to_deg(rad):
     return rad * 180.0 /math.pi 
 
-def smolva_to_mujoco_gripper(x):
-    
-    val_x_deg = 1.3306 * x - 10
-    val_x_rad = deg_to_rad(val_x_deg)
-    val_x_rad = np.clip(val_x_rad, GRIPPER_MIN_VAL, GRIPPER_MAX_VAL)
-    return val_x_rad
+def smolva_to_mujoco_gripper(x, opposite_of_rad=False):
+    if opposite_of_rad:
+        deg_x = rad_to_deg(x)
+        val_x =  (deg_x + 10)/1.3306
+        
+        return val_x            
+    else: 
+        val_x_deg = 1.3306 * x - 10
+        val_x_rad = deg_to_rad(val_x_deg)
+        val_x = np.clip(val_x_rad, GRIPPER_MIN_VAL, GRIPPER_MAX_VAL)
+        return val_x
 
 def sanity_check(idx, x):
     if idx == SHOULDER_PAN_IDX and (x < SHOULDER_PAN_MIN_VAL or x > SHOULDER_PAN_MAX_VAL):
@@ -64,7 +69,7 @@ def sanity_check(idx, x):
 
     return x
 
-def conversion(actions_stack):
+def conversion_replay(actions_stack, opposite_of_rad= False):
     #Convert values into Mujoco's value: joints [0,4]: deg to rad and gripper[5] percentage to rad
     
     print("action value:", actions_stack[0])
@@ -75,17 +80,61 @@ def conversion(actions_stack):
     for i in range(row):
         for j in range(column):
             if j == GRIPPER_IDX:
-                action_to_mujoco[i][j]= smolva_to_mujoco_gripper(actions_stack[i][j])
+                action_to_mujoco[i][j]= smolva_to_mujoco_gripper(actions_stack[i][j], opposite_of_rad=opposite_of_rad)
                 # sanity_check(j, action_to_mujoco[i][j])
             elif j == SHOULDER_PAN_IDX:
-                action_to_mujoco[i][j] = deg_to_rad(actions_stack[i][j]- PAN_OFFSET_DEG)
-                action_to_mujoco[i][j] = sanity_check(j, action_to_mujoco[i][j])
+                if opposite_of_rad:
+                    action_to_mujoco[i][j] = rad_to_deg(actions_stack[i][j])+ PAN_OFFSET_DEG
+                else:
+                    action_to_mujoco[i][j] = deg_to_rad(actions_stack[i][j]- PAN_OFFSET_DEG)
+                    action_to_mujoco[i][j] = sanity_check(j, action_to_mujoco[i][j])
             elif j == SHOULDER_LIFT_IDX:
-                action_to_mujoco[i][j] = deg_to_rad(actions_stack[i][j] - SHOULDER_LIFT_OFFSET)
-                action_to_mujoco[i][j] = sanity_check(j, action_to_mujoco[i][j])
+                if opposite_of_rad:
+                    action_to_mujoco[i][j] = rad_to_deg(actions_stack[i][j]) + SHOULDER_LIFT_OFFSET
+                else:
+                    action_to_mujoco[i][j] = deg_to_rad(actions_stack[i][j] - SHOULDER_LIFT_OFFSET)
+                    action_to_mujoco[i][j] = sanity_check(j, action_to_mujoco[i][j])
             else: 
-                action_to_mujoco[i][j] = deg_to_rad(actions_stack[i][j]) 
-                action_to_mujoco[i][j] = sanity_check(j, action_to_mujoco[i][j])
+                if opposite_of_rad:
+                    action_to_mujoco[i][j] = rad_to_deg(actions_stack[i][j])
+                else:
+                    action_to_mujoco[i][j] = deg_to_rad(actions_stack[i][j]) 
+                    action_to_mujoco[i][j] = sanity_check(j, action_to_mujoco[i][j])
+                
+    
+    return action_to_mujoco 
+
+def conversion(actions_stack, opposite_of_rad= False):
+    #Convert values into Mujoco's value: joints [0,4]: deg to rad and gripper[5] percentage to rad
+    
+    print("action value:", actions_stack[0])
+    # print (actions_stack.shape)
+    row, column = actions_stack.shape
+
+    action_to_mujoco = np.zeros((row, column))
+    for i in range(row):
+        for j in range(column):
+            if j == GRIPPER_IDX:
+                action_to_mujoco[i][j]= smolva_to_mujoco_gripper(actions_stack[i][j], opposite_of_rad=opposite_of_rad)
+                # sanity_check(j, action_to_mujoco[i][j])
+            elif j == SHOULDER_PAN_IDX:
+                if opposite_of_rad:
+                    action_to_mujoco[i][j] = rad_to_deg(actions_stack[i][j])+ PAN_OFFSET_DEG
+                else:
+                    action_to_mujoco[i][j] = deg_to_rad(actions_stack[i][j]- PAN_OFFSET_DEG)
+                    action_to_mujoco[i][j] = sanity_check(j, action_to_mujoco[i][j])
+            elif j == SHOULDER_LIFT_IDX:
+                if opposite_of_rad:
+                    action_to_mujoco[i][j] = rad_to_deg(actions_stack[i][j]) + SHOULDER_LIFT_OFFSET
+                else:
+                    action_to_mujoco[i][j] = deg_to_rad(actions_stack[i][j] - SHOULDER_LIFT_OFFSET)
+                    action_to_mujoco[i][j] = sanity_check(j, action_to_mujoco[i][j])
+            else: 
+                if opposite_of_rad:
+                    action_to_mujoco[i][j] = rad_to_deg(actions_stack[i][j])
+                else:
+                    action_to_mujoco[i][j] = deg_to_rad(actions_stack[i][j]) 
+                    action_to_mujoco[i][j] = sanity_check(j, action_to_mujoco[i][j])
                 
     
     return action_to_mujoco 
