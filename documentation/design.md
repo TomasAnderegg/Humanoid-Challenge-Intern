@@ -1,76 +1,79 @@
 # Robotic Medication Sorting using SmolVLA
 
 ## Context: 
-For over 10 years, I've lived with my disabled aunt, she can't talk, walk properly or think as a child would. She needs extra care and my mom takes care of her. Sometimes nurses would come to my house and help my mom to do basic tasks such as wash my aunt, feed her and prepare the medication in specific boxes. But often, they make mistakes and put the wrong medication in the wrong box. This is very problematic since my aunt is epileptic. 
 
-This gave me an idea, why not build a robotic system that could help my mom prepare the medication in the boxes.
+For over 10 years, I have lived with my disabled aunt. She cannot talk or walk properly and she thinks like a child. She needs extra care and my mom looks after her. Nurses sometimes come to our house to help my mom with basic tasks such as washing and feeding my aunt and preparing her medication in dedicated boxes. However, they often make mistakes and put the wrong medication in the wrong box, which is a serious problem since my aunt is epileptic.
 
-## Break down the problem
-First we need to understand how the box is, each box represents a day, each box contains 4 separations: morning, noon, evening, night. Every day, my aunt has pills she has to take but not at same period of the day: Monday she takes 2 pills in the morning and 1 at night, Tuesday only at noon etc. But the order is fixed and does not change from a week to another.
+This gave me an idea: why not building a robotic system that helps my mom prepare the medication boxes ?
 
-The problem is even for the nurses, arranging the pills in the right side of the box can be tricky because the pills are hard to distinguish between them. For this project, I will start easy first and then try to bring more complexity. The pills are going to be colored with different colors to be distinguishible.
+## Problem breakdown:
 
-Ultimately, once a box is correctly filled with the correct pills for a specific day, we need to stack all the boxes in correct order: Monday-> Sunday.
+First, we need to understand the boxes. Each box represents one day and has 4 compartments: morning, noon, evening and night. Every day, my aunt has to take pills but not at the same times of the day: on Mondays she takes 2 pills in the morning and 1 at night, on Tuesday only at noon etc. This schedule is fixed and does not change from one week to the next.
 
-For this project, I need to establish a few things:
+The difficulty is that, even for the nurses, putting the pills in the right compartments can be tricky because the pills are hard to tell apart. For this project, I will start simple and then gradually add complexity (or at least mention what will be future implementations): the pills will have different colours so that thex can be distinguished. 
 
-1. Dimensions of the different containers + Dimensions of the gripper (including error position of the wrist)
-2. Which model I would use: SmolVLA because it is adapted for SO101 arm, efficient with low cost hardware and open source.
-3. The dataset I will need to create(define one episode e.g. is it going to be a full sorting day ?) with an egocentric view using teleoperation from my leader robot with a wrist camera
+Finally, once each box is filled with the correct pills for its day, all the boxes must be stacked in the correct order, from Monday to Sunday. 
+
+Before stating, I need to define: 
+1. The dimensions of the containers and of the gripper (including the wrist's position error).
+2. The model: SmolVLA because it is adapted for SO101 arm, efficient with low cost hardware and open source.
+3. The dataset to create(define one episode e.g. is it going to be a full sorting day ?) recorded with an egocentric wrist camera while teleoperating with my leader arm.
 4. The resource I have available
 5. Post training process with the dataset
-6. Implement the model in Mujoco
-7. Establish the evaluation 
-
+6. Learn to use Mujoco and implement the scene in Mujoco to finally run the evaluation on it.
+7. Establish the evaluation protocol 
 
 ## Outline of the project
 ### Research questions
 1. How can my robot help my mom to autonomously sorts some medications based on a prescription into a pill organizer for a single day ?
-2. How post-training a model affects tasks performance using home made dataset.
+2. How post-training a model affects tasks performance using home made dataset ?
 
-### Hypothesis
-In this project: 
-1. All pills are considered in different colours in the first time to be clearly visible.
+### Assumptions
+For this project:
+
+1. All pills have different colours so that they are clearly visible.
 2. All pills are considered solid and compact. 
 3. All pills are considered to be Lego at first for easy manipulation and visual recognition. It is a good proxie with dimensions: 3.1cm length, 1.5cm width and 1cm height. Easy for the SO101 arm to pick and compatible with the compartement dimensions. 
 
+### Evaluation protocol
+The success rate will be measured over N rollouts in Mujoco. One rollout is 1 episode of the trained policy: Mujoco places the 4 coloured pills at random positions inside the specific 20x20cm area, the instruction is given to the robot and the policy outputs the joint values that perform the task. At the end of a rollout, the scene is reset and the pills are placed at new random position again. For each rollout, I check whether the task was completed within the time limit. The test set is designed so that the robot has never seen its tasks during training.
 
-### Ablation
-1. I will try to analyse the effect of the vanilla model and post-train model 
+In short:
+- 1 rollout = 1 episode: 1 attempt by the robot with a duration of max 45s
+- There will be approaximatelly 320 rollouts: 20 rollouts per cell for all 16 cells (12 trained and 4 tests).
+
+I will identify 3 types of failures: 
+1. Wrong colour
+2. Wrong cell (or compartement)
+3. Dropped or missed
 
 
-### Evaluation
- The success rate will be evaluated for N rollouts in Mujoco. One rollout corresponds to 1 episode for the trained policy, Mujoco will put the 4 coloured pills in a random position inside the specific 20x20cm area, then the instruction to the robot will be given, the policy will produce the joint value to produce the action and perform the task. At the end of a rollout, there will be a reset and the pills will be put in a random position again. I check whether a task has been completed successfully or not in a time limit for a given rollout. The test set are designed so the robot has never seen the task before.
+## Simulation with Mujoco:
 
- So to break it down more clearly:
- 1 rollout = 1 episode: 1 attempt by the robot with a duration of max 45s
- There will be approaximatelly 320 rollouts: 20 rollouts per cell for all 16 cells (12 trained and 4 tests).
+Mujoco is a physics engine that reads a description of a world (environment) from an XML file. In this file, we describe the obects: their shape, color, mass, position etc. Mujoco will apply the physic: makes the objects fall, collide or get pushed. 
 
- I will identify 3 types of failures: 
- 1. Wrong colour
- 2. Wrong cell (or compartement)
- 3. Dropped or missed
- 
-
-## What is Mujoco
-Mujoco is a physics engine that reads a description of a world/environment from an XML file. In this file, we describe the obects such as the shape, color, mass, position etc. Mujoco will apply the physic: makes the objects fall, collide or get pushed. 
-
-The difference objects I need to simulate:
+The difference objects to simulate:
 1. My SO101 arm (exists already: https://github.com/google-deepmind/mujoco_menagerie/tree/main/robotstudio_so101)
 2. The table where the arm is
 3. Pill organizer 
 4. Pills of different colours 
-5. Camera on the wrist of the arm
+5. Camera on the wrist of the arm (included on the SO101 arm XML file)
+
+The Mujoco code follows the tutorial in the Mujoco Python documentation and its Jupyter notebook [1,7].
 
 ## Resources and Data flow 
-Since I don't have good capacities to post-train a model. I will use Google Colab for post-training. But I need to move my dataset and model between my PC and Colab. The post-training will happen in Colab but the simulation and evaluation will happen on my PC. The best way I found is pushing the recorded demos in Hugging Face, load it in Colab, post-train, push again on HF and run Mujoco. My PC -> HF Hub -> Colab -> HF Hub -> My PC. 
+My PC does not have enough compute to post-train a model, I will use Google Colab for post-training. While simulation and evaluation run on my PC. The best way I found is to go through the Hugging Face Hub: push the recorded demos to HF, load them in Colab, post-train, push the checkpoint back to HF and run Mujoco locally.
+Corresponded file on GitHub: 
+- post_train.ipynb (Colab): load the dataset and the VLA model from HF, post-trains the model and pushes the checkpoint to HF.
+- eval.py: loads the checkpoint from HF and the angle conversion functions from utils.py, then evaluates the post-trained model on the test set, converting the joint values.
 
-There will be a post_train.ipynb (on Colab) file which will load the dataset from HF, load the VLA model from HF, post-train it and load the checkoinpt to HF. An eval.ipynb file that will load the checkpoint from HF, the utils.py file with the angle conversion function will be load. The post-trained model will be evaluated on the test set, the joint values will be converted. 
+## Sim to real calibration:
+### Joint Mapping:
 
-## Calibration: sim and real mapping 
-I need to get the real joint values by live reading them. The position of the arm should match the one in Mujoco. Once I have real joint values, I'll make sure they are in the same unit (radian): degree to radian to make Mujoco sim to work. I'll implement a offset transform that maps real joint values into Mujoco's with the corrected offest.
+The pose of the simulated arm must match the real one. I read the real joint values live (via a LeRobot command line), convert them to Mujoco's unit (degrees to radians) and implement a transform that maps the real joint values to Mujoco's, including the corrected offsets.
 
-Value of min max recorded during calibration with LeRobot (Follower) (Units: tick):
+
+Follower : Range recorded during LeRobot calibration (in ticks):
 
 | Name          |  Min |  Pos |  Max |
 |---------------|-----:|-----:|-----:|
@@ -80,7 +83,7 @@ Value of min max recorded during calibration with LeRobot (Follower) (Units: tic
 | wrist_flex    |  847 | 2875 | 3198 |
 | gripper       | 2016 | 2046 | 3530 |
 
-Same but for the leader (Units: tick): 
+Leader: Range recorded during LeRobot calibration (in ticks): 
 
 | Name          |  Min |  Pos |  Max |
 |---------------|-----:|-----:|-----:|
@@ -90,7 +93,7 @@ Same but for the leader (Units: tick):
 | wrist_flex    |  782 | 2527 | 3109 |
 | gripper       | 2032 | 2046 | 3244 |
 
-Values in Mujoco (Units: rad):
+Mujoco: Joint ranges (in radians):
 
 | Name          |  Min (rad) | Pos |  Max (rad) |
 |---------------|-----------:|:---:|-----------:|
@@ -100,7 +103,7 @@ Values in Mujoco (Units: rad):
 | wrist_flex    |   -1.65806 |  –  |    1.65806 |
 | gripper       |   -0.17453 |  –  |    1.74533 |
 
-Angle range for the follower: (Units: degree)
+Follower vs Mujoco: Angle spans (in degrees):
 
 | Name          | Real span (°) | MuJoCo span (°) | Gap (°) |
 |---------------|--------------:|----------------:|--------:|
@@ -110,22 +113,38 @@ Angle range for the follower: (Units: degree)
 | wrist_flex    |        206.63 |          190.00 |   16.63 |
 | gripper       |        133.06 |          110.00 |   23.06 |
 
-I need to be faithfull between the follower arm and the one in the Mujoco sim. I will take the measured values and map it to Mujoco's. The robot uses a motor with 12 bit encorder, which means a 360° corresponds to 4096 ticks. For the gripper, it is an opening of ~133° 
+The simulated arm must faithfully follow the real followers arm, so I take the measured values and map them to Mujoco's. The motors use 12 bits encoders, so 360° corresponds to 4096 ticks. The gripper opens by ~133°.
 
-The tranform function from Hardware -> LeRobot Software:
-f(x) = (x-val_min)/(val_max - val_min)*100 (%)
-This formula gives the percentage of the joint value span.
+The tranform function from Hardware to LeRobot software (in percentage of the joint span):
 
-NB: This formula only apply for the gripper the rest of the joint use degree value.
+$$
+f(x) = \frac{x - \mathrm{val}_{\min}}{\mathrm{val}_{\max} - \mathrm{val}_{\min}} \times 100\%
+$$
 
-The tranform function from LeRobot Software -> Mujoco:
+NB: This formula only applies to the gripper, the other joints use degrees.
+
+
+The tranform function from LeRobot software to Mujoco (gripper):
+
+$$
+\begin{aligned}
+g_d(x) &= 1.3306x - 10 \; (^\circ)
+\qquad
+g_r(x) &= 0.02322x - 0.174 \; (\mathrm{rad})
+\end{aligned}
+$$
+
 g_d(x) = 1.3306*x - 10 (°) 
-g_r(x) = 0.02322*x - 0.174  (rad) then clip to Mujoco's interval 
+g_r(x) = 0.02322*x - 0.174  (rad) 
 
-Since the span of the gripper IRL is 133°. In Mujoco, it would be -10°(lower bound) + 133° = 123°. We have two points (0,-10) meaning when the gripper is closed (0) in the simluation it translated by -10 and similarly for (100, 123.06). 
+The result is then clipped to Mujoco's range. Since the real gripper spans 133°, the Mujoco ranges goes from -10° (lower bound) to $-10° + 133° \approx 123°$. The mapping is therefore the line through the two points (0,-10°) where the closed gripper (0%) is shifted by -10° in the simulation and (100,123.06°). 
 
+NB: 
+- In the SO101 XML, the actuator ranges are in radians but LeRobot's config uses degrees. During calibration, I must make sure that Mujoco's values match those of my hardware.
+- MJCF files read angles in degrees by default, but this one uses radians because of `<compiler angle="radian" meshdir="assets" autolimits="true"/>`
 
-I wanted to see if there are any measurement bias between the simulation and real hardware, so for a same pose of the robot, I visualize the joint values in the sim and IRL 2 times:
+To check for a measurement bias between the simulation and the real hardware, I put the robot in the same pose twice and compared the real jont values with Mujoco's:
+
 
 | Name          | Real, try 1 (°) | Real, try 2 (°) | MuJoCo (°) | \|try 2 − try 1\| (°) |
 |---------------|----------------:|----------------:|-----------:|----------------------:|
@@ -135,65 +154,213 @@ I wanted to see if there are any measurement bias between the simulation and rea
 | wrist_flex    |            2.77 |            4.00 |          0 |                   1.2 |
 | wrist_roll    |           -0.22 |            3.56 |          0 |                   3.8 |
 
-Based on those observations, I concluded that there is no significant bias between the real world and Mujoco except for the gripper. During the hardware calibration (checking the min and max range for the differents joint value) of the robot, the closed gripper represents 0, whereas in Mujoco the value 0 for the gripper does not correspond to a fully closed but slgithly open which create. By replicating the same pose than in Mujoco 2 times I got: 9.57% and  9.41% IRL corresponding to 0° in Mujoco. By applying the formula g_d(x=9.41)= 2.5° which can be neglected because the larger difference according to the table is ~4° and the gripper bias is lower. 
+Based on those observations, I concluded that there is no significant bias between the real robot and Mujoco except for the gripper. During the hardware calibration (recording the min and max of each joint), the closed gripper is set to 0, whereas in Mujoco a gripper value of 0 does not correspond to fully closed but slightly open which creates an offset. Reproducing the Mujoco pose twice on the real robot, I read 9.57% and 9.41% for the gripper, both corresponding to 0° in Mujoco. The formula $g_{d}(x=9.41) \approx 2.5°$ which is negligible: it is the smaller than the largest try to try difference in the table (~4°).
+
 Sign check: startinf from pose A, I moved each arm joint on the real robot, then matched it in the Mujoco viewer. The sim value had the same sign for all 5 joints.
 
-I'll later compare the recorded camera video with the Mujoco replay video side by side. If the poses differ at the same moement, it means my mapping (unit, sign or gripper formula) is wrong for that joint.
+Checks:
+- Compare the recorded camera video with the Mujoco replay side by side. If the poses differ at the same moment, my mapping (unit, sign or gripper formula) is wrong for that joint.
+- Compare every converted value with its joint's 'ctrlrange'. If many values are outside, either the mapping is wrong or the real arm went beyond the simulation's limits (possible for wrist_flex and the gripper, given the span table).
 
-Suggestion: After converting the whole episode, you count how many values fall outside each joint's ctrlrange. (MuJoCo would silently clip
-    them.)
+## Dataset protocol:
+### Setup:
 
-  Written as a sentence:
+1. Scene: The robot stands on a black table. In front of it, a 20x20 cm area marked with white tape and the same environment is reproduced in Mujoco. The pills are always placed inside this fixed area: the robot should (hopefully) succeed when a pill is inside it and will mostly fail when it is outside.
 
-  ▎ "I'll compare every converted value with its joint's ctrlrange. If many are outside, it means the mapping is wrong, or the real
-  ▎ arm went beyond the sim's limits (possible for wrist_flex and the gripper, given my span table)."
+2. Camera: the only camera is the robot's egocentric wrist camera. 
+
+3. Start: the robot starts in the folded pose. The pills are placed in a random order inside the area, they may be next to each other but never on top of each other.
+
+4. End: an episode is done when the task is completed i.e., the pill is in the right compartment.
+
+5. Instruction: always "Put the {colour} pill in the {compartment} compartment."
+
+6. Duration: about 30s of motion plus 15s to place the pill i.e., at least 45s per episode. The dataset must have enough variety for the policy to learn: the SmolVLA documentation mentions ~50 episodes for a single task when fine-tuning. 
+
+7. Pilot: run a small pilot test first.
+
+Compartment labels: the camer quality is too low to read the text labels (morning, noon, evening, night) so I replaced them with symbols which are much easier to recognise on camera: morning -> circle, noon-> cross, evening -> triangle and night -> square.
+
+#### Train and test cells:
+Each (colour, compartment) combination is a cell. For each colour, one cell is held out as a test cell: this combination never appears during training so that testing on it measures the model's understanding. This gives 12 train cells and 4 test cells (the instructions are listed in the Appendix).
+
+#### Recording plan:
+- For each train cell (e.g., "Put the red pill in the circle compartment."), I recorded 8 episodes, each with the pill at a random position in the area. This gives 3 x 8 = 24 episodes per colour and with 4 colours, 4 x 24 = 96 training episodes. At 45s per episode, the dataset lasts about 1h12.
+- Episodes are grouped into rounds. One round = 4 episodes, one per pill. At start of a round, the 4 pills are placed randomly in the area and the robot performs the 4 tasks. At the end of a round, no pill should be left on the table: all should be in their compartments. The pills are then shuffled and placed randomly in the area again.
+- Rounds are balanced: each round uses one train cell per colour, chosen so that after 24 rounds (=94/4), every train cell has appeared exactly 8 times. A round last 4 x 45s = 3min, so the 24 training rounds take 1h12.
+- The order of the 4 episodes within a round is random, so that the robot does not learn a rule about the order of the pills.
+- A compartment can hold up to 4 pills at the same time which increase data diversity: $3^4 = 81$ possible rounds.
+
+## Post-training:
+
+Post training uses LoRa (via PEFT) instead of classic full fine tuning, to avoid destroying the model's pretrained knowledge. LoRa reduces the number of trainable parameters with rank 64, only 2.97M parameters are trained out of SmolVLA's 453M.
+
+I first used a T4 GPU with batch size 32 and no mixed precision. A 100 step test gave an average of 5.5s per step. To find the bottleneck, I compared the time spent loading a batch on the CPU ('data_s') with the time spent on the forward/backward pass on the GPU ('updt_s'). With this GPU, I only had access to 2 CPU's. On average, I measured 'data_s' = 5.15s and 'updt_s' = 4.89s. To reduce these numbers, I enabled mixed precision (fp16) following the SmolVLA setup and reduced 'num_workers' to 2 (default is 4). I then measured 'data_s' = 0.0004s and 'updt_s' = 1.0s, i.e., 1.03s per step. The SmolVLA authors fine tune for a bit less than 20'000 steps which in my case would have taken just under 5h40. I chose 10'000 steps so that the model sees the data 4.8 times (4.8 epoochs).
+
+I then upgraded to an A100 with high RAM (12 CPUs). This let me match SmolVLA's batch size of 64, increase 'num_workers' to 10 and switch mixed precision to bf16. The whole training took ~54min.
 
 
-## Dataset protocol
-
-1. Setup: The robot will be on a black table, in front of it there will be a zone of area 20x20 cm^2 marked with white tape. The same environment will be reproduce in Mujoco
-2. The only camera will be the egocentric camera of the robot located at the wrist.
-3. The start position the robot will be the folded pose in Mujoco. The pill are place in a random order inside the area. The pills cannot be one on top of the other but only next to at most.
-4. An episode is done when the task is completed e.g. the pill is in the right container.
-5. The instruction protocol will follow the same structure: "Put the {colour} pill in the {compartment} compartment."
-6. The time: 30s of motion, plus 15s to put the pill = at least 45s. Having enough variety for the policy to learn. SmolVLA docs talk about ~50 episodes for a single task when fine-tuning. Since it is the same task for me which is pick and place.
-7. Run a small pilot test 
 ## Results:
-### Sim Scene:
-In order to reproduce the scene as faithfull as possible, I need to know where the main axis was located on the robot. Then I proceed to take several measurments to map them into my simulation along with the correct size measurment of my different objects (pill comparement, pilss, area defined by tape and robot distance).
+### Simulation Scene:
+
+To reproduce the scene as faithfully as possible, I needed to locate the robot's main (base) axis. I then took several measurments to map the scene into my simulation along with the exact sizes of the objects: pill organizer, pills, taped area and distance to the robot.
 
 <p align="center">
   <img src="../assets/scene_measurment.jpeg" width="500">
   <img src="../assets/scene_mujoco.png" width="500">
 </p>
 
-In order to place the pills in a random position at each episode, a random position function as been implemented. The pills are placed in a random position inside the area. The simulation was tested using episode 0 replay by giving Mujoco the actions produced during that episode to the robot. The task consists on picking the red pill and putting it inside the circle compartment. After successfully reproducing close but not perfect movement and placement as the recorded episode, the simulation was ready. 
+A function places the pills at random position inside the area at each episode. I tested the simulation by replaying episode 0, i.e., by sending Mujoco the actions recorded during that episode. The task is to pick the red pill and put it in the circle compartment. The replay reproduced the recorded movement and placement closely, not perfectly so the simulation was ready.
 
-## Closed loop evalutation:
+### Correcing the sim to real offsets:
+#### Pill explosion diagnosing:
+
+Implementing the geometries from the real measurements of the setup led to the following rendering in Mujoco: 
+
+<p align="center">
+  <img src="../assets/so101_and_scene_but_not_yet_there_disappear_2.gif" alt="Offset-Free Tracking Demo" width="80%">
+</p>
+
+The red pill suddenly vanished. This comes from the simulator's physics: the gripper presses the pill against the compartment and the resulting force launches the pill. Printing the red pill's position over the whole episode and focusing on the "explosion" shows that it jumps from around [0.2 -0.08 0.03] m to  [9.19, 0.41, 1.14] m. This reveals two position errors: the gripper does not reach the right compartment (in episode 0, the robot has to put the red pill in the circle compartment) and the gripper is too low (z-axis) so it touches the compartment and makes the pill explode.
+
+I rewatched the real recording at this exact moment to check whether my gripper was that low and whether the pill touched the compartment. It did not which confirms the position errors: in simulation, the gripper was off by a few centimetres. 
+
+First, I visualised the gripper's contact point (a Mujoco site) to check whether the author of the model file had placed it at the tip of the gripper: 
+
+<p align="center">
+  <img src="../assets/so101_and_scene_but_not_yet_there_4.gif" alt="Offset-Free Tracking Demo" width="80%">
+</p>
+
+The contact point's position is acceptable so the error probably comes from the commands my script sends to Mujoco.
+
+##### xy plane: shoulder_pan offset:
+To check whether the problem comes from a calibration error, I compared real and simulated positions. I selected a frame of the recording where the gripper is exactly above the circle compartment:
+
+<p align="center">
+  <img src="../assets/so101_above_circle_comp.png" alt="Offset-Free Tracking Demo" width="80%">
+</p>
+
+Assuming the Mujoco scene maps the real one correctly, the circle symbol is at [0.3545  0.01275 0.0085 ] m so the real gripper is at x = 0.3545m and y = 0.01275m. To get the simulated position, I first extracted the index of that frame with $ idx = fps * t_{s}$ where $t_{s}$ is the time in the recording at which the gripper is at the reference position and $fps = 30$ Hz. I took the follower arm's joint values at that frame, converted them to radians and passed them to Mujoco's kinematics function to get the position Mujoco would have produced. The simulated position is [ 0.33657445 -0.03025805  0.0109119] with x = 0.33657445m and y = -0.03025805m. This confirms a mismatch between the real and simulated values so the calibration needs to be corrected.
+
+I focused first on the gripper's position in the xy plane and computed the angle error between the real and simulated positions:
+$$
+\theta_{error} = \theta_{real} - \theta_{sim} = 7.18°
+$$
+
+where $\theta_{real} = arctan(0.0127/0.3545) = 2.05°$ and $\theta_{sim} = arctan(-0.0302/0.3365) = -5.13°$.
+
+To check whether the error propagates with distance, I repeated the experiment with the square compartment, thr farthest one. I selected the grame of episode 30 where the gripper is exactly above the square symbol and proceeding the same way, I obtained: 
+
+$$
+\theta_{error} = \theta_{real} - \theta_{sim} = 5.77°
+$$
+
+where $\theta_{real} = arctan(-0.0667/0.3540) = -10.56°$ and $\theta_{sim} = arctan(-0.0978/0.3310) = -16.33°$.
+
+The error has the same order of magnitude as for the circle. Next, I had to find which joint was responsible. My initial visual calibration had already highlighted a few potentially problematic joints and the one that drives motion in the xy plance is shoulder_pan. I substracted from it an offset equal to the mean of the errors (for the circle and square), which makes the simulation match reality, as the video shows:
+
+<p align="center">
+  <img src="../assets/so101_problem_xy_plan_solved_offset.gif" alt="Offset-Free Tracking Demo" width="80%">
+</p>
+
+##### z-axis: shoulder_lift offset:
+
+The video still shoes the problem on the z-axis which causes the pill explosion that does not happen in the real recording. I used the same process to find the offset to apply to a specific joint. As a reference, I took a frame of episode 0 where the gripper tip touches the table so I can easily say that the gripper is at z = 0m at that frame:
+
+<p align="center">
+  <img src="../assets/so101_gripper_z_reference_irl.png" alt="Offset-Free Tracking Demo" width="80%">
+</p>
+
+From the index of that frame, I extracted the robot's joint values, converted them and applied forward kinematics to get the position Mujoco would have produced: $ z_{sim} = -0.8 cm$. Resulting in an error for episode 0:
+
+$$
+z_{error} = z_{real} - z_{sim} = 0.8 cm
+$$
+
+where $z_{real} = 0 cm$ and $z_{sim} = -0.8 cm$.
+
+Repeating the process for another frame, in episode 30, where the gripper touches the table gives $z_{error} = 2.1 cm$.
+
+This error corresponds to the offset I should apply to one of the joints. Three joints directly affect the gripper's z motion and could cause this error: shoulder lift, elbow flex and wrist flex.
+
+<p align="center">
+  <img src="../assets/so101_scheme_z_correction_reasoning.jpeg" alt="Offset-Free Tracking Demo" width="80%">
+</p>
+
+Two arguments help narrow down the suspects. First, a z error grows linearly with the lever arm and with the angle error introduced by the joint. As the sketch shows with $ L = R*\theta$, the longer the lever arm $R$, the more likely this joint is to propagate its angle error to the gripper. Second, in the span table of the initial calibration, shoulder_lift and wrist_flex have the largest span gaps: when a real command is out of bounds, it gets clipped in Mujoco, which introduces errors. 
+
+For the same frames as before (episodes 0 and 30), I measured $R$ as the distance from each joint to the gripper tip:
+
+
+| Joint         | R at the near pickup (ep 0) | R at the far pickup (ep 30) |
+|---------------|----------------------------:|----------------------------:|
+| shoulder_lift | 0.222 m                     | 0.326 m                     |
+| elbow_flex    | 0.250 m                     | 0.238 m                     |
+| wrist_flex    | 0.159 m                     | 0.159 m                     |
+ 
+To find the suspect, I computed $\theta = L/R$ for each joint, using the two errors measured in episode 0 and 30 (the two main suspects being shoulder_lift and wrist_flex). If a joint carries an angle error, its two $\theta$ values (near and far pickup) should be very similar: 
+
+
+| Joint         | θ at the near pickup (ep 0) | θ at the far pickup (ep 30) |
+|---------------|----------------------------:|----------------------------:|
+| shoulder_lift | 2.1°                        | 3.7°                        |
+| elbow_flex    | 1.8°                        | 5.1°                        |
+| wrist_flex    | 2.9°                        | 7.6°                        | 
+
+As the table shows, the shoulder lift values are close to each other. However, judging the gripper's position from a video, I cannot be more precise than $\pm 1$cm:
+
+<p align="center">
+  <img src="../assets/so101_scheme_uncertainty_reasoning.jpeg" alt="Offset-Free Tracking Demo" width="80%">
+</p>
+
+This sketch shows how I computed the angle uncertainty:
+
+$$
+\theta_u = \pm \frac{L}{R}, \qquad R = \sqrt{x^2 + y^2}
+$$
+
+where $L$ is the position uncertainty and $R$ is the distance from the robot's origin to the point $(x,y)$:
+
+The following table presents the overall results:
+
+| Compartment | x (m) | y (m)  | R (m) | θ_u = ±L / R (L = 1 cm)    |
+|-------------|------:|-------:|------:|---------------------------:|
+| circle      | 0.354 |  0.013 | 0.354 | ±0.0282 rad (±1.62°)       |
+| square      | 0.354 | −0.067 | 0.360 | ±0.0278 rad (±1.59°)       |
+
+The angle uncertainty is $\approx 1.6°$. The difference between the near and far shoulder lift angles lies within this range, which makes shoulder_lift suspect number one. I therefore substracted an offset of -2.9° from this joint, which gives:
+
+<p align="center">
+  <img src="../assets/so101_problem_xyz_solved_offset.gif" alt="Offset-Free Tracking Demo" width="80%">
+</p>
+
+### Closed loop evaluation:
 
 <p align="center">
   <img src="../assets/loop.jpeg" width="500">
 </p>
 
-As showns in the illustration, the loop is composed of 3 blocks: the environment such as Mujoco where the robot is or the real life scenario, the conversion blocks to make the correct connexion between the environment and the VLA, and finally the VLA model.
+As showns in the illustration, the loop has 3 blocks: the environment where the robot is (Mujoco or the real world), the conversion blocks to connect the environment and the VLA correctly and the VLA model itself.
 
-1. The Mujoco environment as discussed in the previous section, was build as faithfull as possible as the real setting by respecting the measurments and the physics.
-2. The conversion blocks were the most challenging since they required a good understanding of the input and output from both the environment and VLA model. The help the loop to understand the differents values. The block that goes from the environment to the VLA transforms the joint values from radian to degree, except for the gripper that needs a mapping function described in a previous section, since Mujoco only works with radians values and VLA with degree values. The other block is the opposite.
-3. The VLA models that is essential to converts the state and images observations into action. It also take as input the task the robot has to follow. The VLA model produces 50 actions at once instead of a single action. A specific build-in function (select_action function) is responsible of generating the 50 actions or distribute those 50 actions according to the 30 Hz frequency of the policy. This chunk generation allow the model to be called less time making it efficient. For an episode with a maximal duration of 85.3s, the model is called 2559 times but the VLA generates actions only 52 times. The rest of the time, the chunk of action is distributed sequentially every 0.0333s.   
+1. Environment: as discussed in the previous section, The Mujoco environment was build to be as faithful as possible to the real setting by respecting the measurements and the physics.
+2. Conversion blocks: these were the most challenging part, since they required a good understanding of the input and output of both the environment and the VLA model. They let the two sides of the loop to understand each other's values. Mujoco only works with radians and the VLA with degree so the block from the environment to the VLA converts the joint values from radians to degrees, except for the gripper which needs the mapping function described in the calibration section. The other blocks does the opposite.
 
-The evaluation was done with a task the robot has never seen before to assess its understanding. But the robot didn't move at all from its folded pose. Then I moved to a task it has been trained on: "Put the red pill in the circle compartment.". But achieved the same problem:
+3. VLA model: it converts the state and images observations together with the task instruction into actions. It produces 50 actions at once (an action chunk) instead of a single action. A specific build-in function (select_action function) either generates a new chunk of 50 actions or releases the actions of the current chunk at the policy's 30 Hz frequency. This chunk generation allow the model to be called less time making it efficient. For an episode lasting at most 85.3s, 'select_action' is called 2559 times but the VLA generates actions only 52 times. The rest of the time, the action of the current chunk are executed sequentially one every 0.0333s.   
+
+#### Stuck in the folded pose:
+I first evaluated the policy on a task the robot had never seen, to assess its understanding but the robot did not move at all from its folded pose. I then switched to a task it had been trained on: "Put the red pill in the circle compartment.". and ran into the same problem:
 
 <p align="center">
   <img src="../assets/lora_first_video_folded_pose.gif" width="500">
 </p>
 
-I notice the robot stays at its folded pose and does not move at all. I ran this over 3 times achieving the same results. First, I thought it was a simulation problem and decided to deploy on my real robot:
+The robot stays in its folded pose and does not move at all. 3 runs gave the same results. I first thought it was a simulation problem so I deployed the policy on my real robot:
 
 <p align="center">
   <img src="../assets/folded_real.gif" width="500">
 </p>
 
-The problem is still the same. A first experiment was done by printing the action the model produces against the human's action. I took episode 0 and selected 2 distinct frames (F150 and F625) and computed the action with the fine-tuned model and compared the results with the human's: both match within 2.2°:
+The problem persists. As a first experiment, I compared the actions produced by the model with the human's actions. I selected 2 distinct frames of episode 0 (F150 and F625), computed the actions with the fine tuned model and compared them with the human's: both match within 2.3°:
 
 | Joint | F150 Policy | F150 Human | Diff | F625 Policy | F625 Human | Diff |
 |:------|------------:|-----------:|-----:|------------:|-----------:|-----:|
@@ -204,36 +371,42 @@ The problem is still the same. A first experiment was done by printing the actio
 | Wrist roll (°) | -104.86 | -106.33 | 1.47 | -82.71 | -82.86 | 0.15 |
 | Gripper | 0.97 | 1.16 | 0.19 | 13.10 | 13.37 | 0.27 |
 
-The frame 625 was selected because the robot arm was far from folded making a good comparison.
+Frame 625 was chosen because the arm is far from the folded pose which makes it a good comparison point.
 
-Leaving the problem of a broken model aside. Then, by analyzing the recording of the dataset, I noticed that I always began at the folded position and ended the episode in a folded position. Making this position as the most recorded movement for the entire dataset. I have decided to make the robot start at a non folded position by moving it a little bit. I started to have better movemement than trembling in a folded pose for the same trained task even on Mujoco: 
-
+This rule out a broken model. Analysing the dataset recordings, I then noticed that every episode I make starts and ends the robot in the folded pose, which makes it the most recorded pose in the whole dataset. I therefore made the robot start from a non folded pose by moving it slightly. For the same trained task, the robot then moved better than when trembling in the folded pose, both on the real robot and Mujoco:
+ 
 <p align="center">
   <img src="../assets/not_folded_real_lora.gif" width="400">
   <img src="../assets/lora_first_video_not_folded_pose_gpu.gif" width="400"> 
 </p>
 
-This tests show that the robot get stuck when it is in the folded position, but by moving in a non-folded position, it allows the policy to be deployed and produce actions. The figure with the simulation shows the robot finally moving towards the pill to accomplish it task: "Put the red pill in the circle compartment.".
+These tests show that the robot get stuck in the folded pose whereas starting from a non folded pose lets the policy produce actions. In simulation, the robot finally moves towards the pill to accomplish its task: "Put the red pill in the circle compartment.".
 
-Also by looking at this demonstration, the robot did not succeed the task of putting the red pill in the circle compartment, so testing with an unseen one is useless. We notice that it still grab a pill but not the correct one and put it inside another compartment than the circle one. This shows that the robot learns the movement of grabbing and placing inside a compartment but struggle to identify the symbol and colour. This is probably due to the poor quality of the camera during the recording making the image very blurry and also the fact that while the robot is moving, the camera is shaking a lot making. In addition, the model was post-train for only 1 hour, making the model see the data only around 4 times.
+#### Visual understanding:
 
-To tackle the problem of the visual understanding, I could have re-record the dataset with a better camera or try to post-train again with a full fine-tuning over all the parameters. This allows the vision encoder to be fully fine-tuned with the dataset's frames. The following figure shows the results from a full fine-tuning using the task: "Put the red pill in the circle compartment.":
+However, the robot did not succeed in putting the red pill in the circle compartment, so testing an unseen task in pointless. It does grab a pill but not the correct one and puts it in a compartment other than the circle. This shows that the robot has learned the motion of grabbing a pil and placing it in a compartment but struggles to identify the symbols and colours. This is probably due to the poor camera quality during recording which makes the images very blurry and to the camera shaking a lot while the robot moves. In addition, the model was post trained for $\approx 1$h so it saw the data only about 4 times.
+
+To tackle the visual understanding problem, I could either re-record the dataset with a better camer or post train again with a full fine-tuning of all parameters, which also fine tunes the vision encoder on the dataset's frames. The following figure shows the result of full fine tuning on the task:"Put the red pill in the circle compartment.":
 
 <p align="center">
   <img src="../assets/not_folded_real_full_ft.gif" width="500">
 </p>
 
-Out of 4 runs, only the first one the robot picked the red pill. But after the third run other manipulations wiht the pills in different orders with the same task, the robot still struggled to spot the correct pill and struggle to grab it. A last post-training was performed using the same one as the original paper: fine-tuning the action expert, achieving the same result with the task "Put the red pill in the circle compartment." and not improving performance. 
+Out of 4 runs, the robot picked the red pill only in the first one. In the following runs with the pills rearranged in different orders but the same task, the robot still struggled to spot the correct pill and to grab it. A final post training run used the same setup as the original paper (fine tuning only the action expert). It gave the same result on the task: "Put the red pill in the circle compartment." and did not improve performance. 
 
-I concluded that the quantity of the recording can explain why the robot did not learn well the tasks even though the model has been pretrained, the quality of the image is also a potential problem since it did not recognize the colour nor the symbols and finally making sure the dataset is well diversified with start and end pose difference.
+#### Conclusion:
+I conclude that three factors explain why the robot did not learn the tasks well even though the model was pretrained: the amount of recorded data is too small, the image quality is poor, since the robot recognised neither the colours nor the symbols and the dataset is not diverse enough as all episodes share the same start and end pose.
 
-## Problems into solution:
-1. The resolution of the camera was not sufficient to read the text on the pill organizer, si it has been adapted with symbols to make sure the robot understand.
-2. During the data recording phase, I created a automatic file that runs every task 8 times to avoid making mistake during this step. Later during the post-training of the VLA, I encounter an error "IndexError: Invalid frame index=940 for streamIndex=0; must be less than 937". Analyze for all episodes the number of frame mismatch and extracted the problematic episodes. The inconsistency may be due to the automatic file that encoded the video while starting the next recording because the missing frames are always at the end. During the recording, the episode always ended up when the robot was folded once the task completed. Solution 1: A non official tool for trimming the videos https://github.com/krohling/lerobot-dataset-editor using an older version of the dataset format, Solution 2: re-record the problematic videos. For the sake of simplicity, solution 2 will be done in order to not incorporate new complicated errors. The fame obstructed videos were replicate with the pills in the exact position in order to not break the diversity of the pills position. The new dataset was then merged with the one with the obstructed episode were deleted.
+## Problems and solutions:
+1. Unreadable compartment labels: the camera resolution was too low to read the text on the pill organizer so I replaced the text with symbols to make sure the robot can recognise the compartments
+2. frame index error in the dataset: To avoid mistakes during data recording, I wrote a script that automatically runs every task 9 times. Later,during post training, I hit an error about frame count mismatch. I checked the frame count mismatch for all episoded and extracted the problematic ones. The missing frames are always at the end so the inconsistency probably comes from the script encoding a video while already starting the next recording (during recording, each episode ended with the robot folded once the task was completed). There were two solutions: $(i)$ trim the video with an unofficial tool $(ii)$ re-record the problematic episodes.
 
-3. During post training with the T4 GPU, my Colab session disconnected due to time limit. An upgrade of the GPU allows me to reduce the post-train step.
+For simplicity and to avoid introducing new complicated errors, I choose $(ii)$. I re-recorded the corrupted episodes with the plls in exactly the same positions, so as not to break the diversity of pill positions. I then deleted the corrupted episodes from the original dataset and merged the new episodes into it.
 
-4. Google DeepMind provides a XML for the SO101 robot arm that I used for my simulation. When loading the first action of episode 0 to check wherether the joint order is correct I noticed a noisy movement. I started to print the joint values given to Mujoco and noticed some of the values where out of bound so I made sure before sending them to Mujoco they were clipped. But the probleme remains still. Since Mujoco's movemement works with a PD controller (qpos = robot's position in the simulation and ctrl = target position for the robot), I wanted for all joints if the command target is reached. I noticed that for joint 2, corresponding to elbow flex, there is a gap at the beginning (gap ~17°). Indicating a collision between geometric part provoking a repulsive force. Since it does not affect the purpose of the project. This problem is not treated as a priority and will be done at the end if time remains. 
+3. Colab time limit: During post training on the T4 GPU, my colab session disconnected because of the time limit. Upgrading the GPU allowed me to shorten the post training.
+
+4. Noisy replay and elbow_flex tracking gap:
+For the simulation, I used the SO101 XML provided by Google DeepMind. When loading the first action of episode 0 to check that joint order was correct, I noticed a noisy movement. Printing the joint calues sent to Mujoco showed that some of them were out of bounds, so I clipped them before sending them to Mujoco but the problem remained. Since Mujoco moves the joint with a PD controller (qpos = the robot's position in the simulation, ctrl = the target position), I checked for every joint whether the target was reached. Joint 2 (elbow flex) shows a gap of ~17° at the beginngin which indicated a collision between geometric parts that creates a repulsive force. Since this does not affect the purpose of the project, it is not a priority:
 
 <p align="center">
   <img src="../assets/replay_first_frames_ep0_tracking.png" width="500">
@@ -242,119 +415,6 @@ I concluded that the quantity of the recording can explain why the robot did not
   <img src="../assets/so101_tweaking_2_action0.gif" alt="Offset-Free Tracking Demo" width="80%">
 </p>
 
-5. The Mujoco functions were implemented following the tutorial presented in the Mujoco Python documentation and the Jupyter notebook.
-
-6. After implementing the different geometries according to real measurement of the setup led to the following rendering on Mujoco: 
-
-<p align="center">
-  <img src="../assets/so101_and_scene_but_not_yet_there_disappear_2.gif" alt="Offset-Free Tracking Demo" width="80%">
-</p>
-
-We notice the red pill vanished suddently. This is due to the physics of the simulator. A pressure is applied to the red pill from the gripper against the compartment resulting into a propulsion of the red pill. By printing the position of the red pill during the full episode and focusing on the explosion part, we notice the position went from a position around [0.2 -0.08 0.03] meters to  [9.19, 0.41, 1.14] meters. This highlights two positions erros: the gripper is not reaching the right compartment (for that case, the robot has to put the red pill in the circle compartment, episode 0) and the gripper is to low thus touching the compartment and making the pill explodes. 
-
-I rewatched the real recording in this exact moment to check whether my gripper was that low and if the pill did touch or had contact with the compartment. It was not the case, conforming the positions errors. The position of the gripper was off by some centimeters. First of all, I visualize the contact point (a site in Mujoco) of the gripper in Mujoco to check whether the designer of this file put the contact point at the tip of the gripper:
-
-<p align="center">
-  <img src="../assets/so101_and_scene_but_not_yet_there_4.gif" alt="Offset-Free Tracking Demo" width="80%">
-</p>
-
-The contact point position is acceptable and the error probably comes from the command my script is sending to Mujoco.
-
-I decided to compare real values against sim values to check whether this problem might come from a calibration error. I selected a specific frame from the recording where the gripper is exactly above the circle compartment:  
-<p align="center">
-  <img src="../assets/so101_above_circle_comp.png" alt="Offset-Free Tracking Demo" width="80%">
-</p>
-Assuming the setup created in Mujoco is mapping correctly the real one. The value of the circle symbol is at [0.3545  0.01275 0.0085 ] meters. The gripper is then at position x = 0.3545m and y = 0.01275. The sim joint values are taken exactly from the follower arm, adapted to rad and then passed to the mujoco kinematic function to have the position Mujoco would have given in the simulation. This represent the sim value position. But first, I needed to extract the exact frame where the gripper is at the reference position, the index of that frame can be extracted by using the formula idx = fps*t_s where t_s is the time in the recording where the gripper is at the reference position and fps = 30 Hz. The sim position results:  [ 0.33657445 -0.03025805  0.0109119] meters. On Mujoco, the gripper is at x = 0.3365m and y = -0.0302m. This confirms a mismatch between the real and sim values and that the calibration needs to be corrected. I decided to focus first on the position on the xy-plane of the gripper. I calculated the angle error between the real and sim values: 
-
-$$
-\theta_{error} = \theta_{real} - \theta_{sim} = 7.18°
-$$
-
-where $\theta_{real} = arctan(0.0127/0.3545) = 2.05°$ and $\theta_{sim} = arctan(-0.0302/0.3365) = -5.13°$. I also wanted to know if the error propagates throught the distance, I run the same experiment for the squared compartment, a distance as far as possible. For that end, I selected episode 30 with the frame where the gripper is exactly above the square symbol. By proceeding the same way as the circle symbol, I obtained:
-
-$$
-\theta_{error} = \theta_{real} - \theta_{sim} = 5.77°
-$$
-
-where $\theta_{real} = arctan(-0.0667/0.3540) = -10.56°$ and $\theta_{sim} = arctan(-0.0978/0.3310) = -16.33°$.
-
-The notice the error is at the same magnitude as the circle one. I needed to verify which joints were responsible of that error. My first eyeball calibration from the beginning by comparing visually the pose of the robot highlighted some joints that might be problematic and the one that is interesting for the xy-plan movement is the shoulder_pan. An offset value of the mean from both experiment (circle and square errors) was substracted to match reality as the video illustrates:
-
-<p align="center">
-  <img src="../assets/so101_problem_xy_plan_solved_offset.gif" alt="Offset-Free Tracking Demo" width="80%">
-</p>
-
-This illustration still shows the problem on z axis, causing the pill explosion which is not what happens on the real recording. The same process has been done to identify the offset I applied for a specific joint. I took a reference from episode 0 where the tip of the gripper is touching the table. This allow me to easily say that at that specific frame, the gripper was at z = 0 m:
-<p align="center">
-  <img src="../assets/so101_gripper_z_reference_irl.png" alt="Offset-Free Tracking Demo" width="80%">
-</p>
-
-By extracting the index of that recording at that time, I was able to extract the joint values from the robot, convert them and apply the forward kinematic formula to get the position Mujoco would have given to the robot: $ z_{sim} = -0.8 cm$. Resulting in an error for episode 0:
-
-$$
-z_{error} = z_{real} - z_{sim} = 0.8 cm
-$$
-
-where $z_{real} = 0 cm$ and $z_{sim} = -0.8 cm$.
-
-Repeating the same process for another position in episode 30 where the gripper touches the table, gives me a $z_{error} = 2.1 cm$.
-
-The error represent the offset I should apply to one of the joint. The joint respibles for that z deplacement noise are: shoulder_lift, elbow_flex and wrist_flex. They influence directly on the z-motion of the gripper: 
-
-<p align="center">
-  <img src="../assets/so101_scheme_z_correction_reasoning.jpeg" alt="Offset-Free Tracking Demo" width="80%">
-</p>
-
-A z error can grow linearly with respect to the arm lenght and the angle error the joint value introduce. As the illustation shows with the formula $ L = R*\theta$, the larger the arm lenght the most probable this joint is responsible for propagating the error to the gripper if it already contains an error value. Second of all, at the beginning, I map the span gap of every joint values, shoulder_lift and wrist_flex have the largest span gap, meaning when a real command is send to the joints and the real command is out of bound, it will be clipped in Mujoco, introducing errors.
-
-For the same scenario where the gripper picks a pill, I measured R by taking the distance from a joint to the gripper's tip. I took both episode 0 and 30 as previously to match the errors found:
-
-| Joint         | R at the near pickup (ep 0) | R at the far pickup (ep 30) |
-|---------------|----------------------------:|----------------------------:|
-| shoulder_lift | 0.222 m                     | 0.326 m                     |
-| elbow_flex    | 0.250 m                     | 0.238 m                     |
-| wrist_flex    | 0.159 m                     | 0.159 m                     |
-
-To spot the suspect, we calculate the angle for the wrist_flex and shoulder_lift joints as they are our 2 suspects. $\theta = L / R$ is applied for the 2 measurements done on ep0 and ep30. The guess would be, if an error exists, both $\theta$ values (near pickup and far pickup) look very similar: 
-
-| Joint         | θ at the near pickup (ep 0) | θ at the far pickup (ep 30) |
-|---------------|----------------------------:|----------------------------:|
-| shoulder_lift | 2.1°                        | 3.7°                        |
-| elbow_flex    | 1.8°                        | 5.1°                        |
-| wrist_flex    | 2.9°                        | 7.6°                        | 
-
-As the table above shows, the value for the shoulder_list are close to each other. 
-By judging the gripper through a video, I cannot tell better the position than $\pm 1$ cm. 
-
-<p align="center">
-  <img src="../assets/so101_scheme_uncertainty_reasoning.jpeg" alt="Offset-Free Tracking Demo" width="80%">
-</p>
-
-This illustration shows the reasoning about the angle uncertainty calculation: 
-
-$$
-\theta_u = \pm \frac{L}{R}, \qquad R = \sqrt{x^2 + y^2}
-$$
-
-where $L$ is the position uncertainty and $R$ is the distance from the robot origin to the point $(x, y)$. The following table presents the overall results:
-
-| Compartment | x (m) | y (m)  | R (m) | θ_u = ±L / R (L = 1 cm)    |
-|-------------|------:|-------:|------:|---------------------------:|
-| circle      | 0.354 |  0.013 | 0.354 | ±0.0282 rad (±1.62°)       |
-| square      | 0.354 | −0.067 | 0.360 | ±0.0278 rad (±1.59°)       |
-
-The angle uncertainty is $\approx \pm 1.6°$. According the shoulder_lift angles from near pickup and far pickup, the difference lie in this angle uncertainty range, making the shoulder_lift suspect number one. An offset of - 2.9° will be substracted for this specific joint resulting:
-
-<p align="center">
-  <img src="../assets/so101_problem_xyz_solved_offset.gif" alt="Offset-Free Tracking Demo" width="80%">
-</p>
-
-## Optimization
-The post-training was done using LoRa (via PEFT) instead of the classical fine-tuning in order to prevent destruction of knowledge of the model iteself. This method reduces the number of parameters to train for a rank = 64, the model trained 2.97M parameters whereas SmolVLA has 453M parameters.
-
-A first T4 GPU with batch size 32 was used and no mixed precision used. A test of 100 steps was conducted and an average of 5.5s per step was observed. I wanted to understand which part of the process was taking too long: either the loading of the batch with the CPU (denoted by data_s) or the compute of the forward/backward pass with the GPU (denoted updt_s). With this GPU, I had only had access to 2 CPUs. An average of data_s = 5.15s and updt_s= 4.89s was observed. To reduce this numbers, I added a mixe precision (fp16) following the SmolVLA setup and reduced the num_workers to 2 (by default it was 4). I observed data_s = 0.004s and updt_s = 1.0, taking 1.03s per step. The author of the SmolVLA paper mentioned a fine-tuning with a bit less than 20'000 steps which in my case would have taken a total of less than 5h40. The number of step was choosen to be 10'000 in order for the model to see the data 4.8 times (=epochs). 
-
-I then updgraded the GPU to a A100 with high-RAM (12 CPUs). This allowed me to match the SmolVLA batch size of 64, increas the num_workers to 10 and changing the mixe precision to bf16. The total training last ~54min. 
 ## Questions for myself
 Q1: The scale problem. Do the numbers.
 
@@ -388,23 +448,6 @@ Q5: Generalization with a small dataset. Say you have 3 pill types and 7 compart
 R5: According to the task description, the composition is fixed by the description during training. The idea would be to create a small dataset with different combination according to the task description: I will start by one pill, different combination then progressively scale up the number of pills up to 4 with different combinations. The idea is to use at inference the robot trained on a zero shot full new description, recognize the pull and able to place it in the right side of the box.
 
 Imagine 3 pills colours (Red, blue, yellow) and 4 compartments (Morning, Noon, Evening and Night). I will record demos only for the train cells for example for red: Morning(train), Noon(train), Evening(train) and Night(test). During test time, I will give an instruction the robot has never seen before "put the red pill in the night compartment". This will allow me to evaluate if the robot hasn't just memorized the motion but understood red and night.
-
-
-## Notes
-- I will need to define a fixed area during the teleoperation part where I will record the object. The robot will (hopefully) succeed because the object is inside it. If the object is outside the fixed area, it will mostly fail. The area will be 20 cm lenght and 20 cm width.
-- The XML of the SO101 arm, the actuator value of the range are in radian, but the files in lerobot for the so_follower are in degree ! Carefull (/home/tjga98/Humanoid-Challenge-Intern/lerobot/src/lerobot/robots/so_follower/config_so_follower.py). During calibration, I have to be carefull to match mujoco's and also the values on my hardware.
-- By default, MJCF files reads angles in degrees, but in this file it is in radian because of <compiler angle="radian" meshdir="assets" autolimits="true"/>
-- One round will be composed of 4 episodes where each episode corresponds to a specific pill. At the begining, the 4 pills are randomly placed on the area, the robot will perform the 4 tasks. At the end of a round none pills should be on the table but inside their respective containers. Then a reset will be done by shuffling the pills and randomly placed on the area.
-- During training, the task will be randomly selected so the robot does not learn a rule concerning the order of the pill.
-- There will be a test cell, where during training the combination with that cell for a specific colour pill won't be avaible to test the model understanding.
-
--A compartement can have 4 pills at the same time this allows to have more data diversity (3^4=81 possible rounds).  
-
-- For each colour pill, I will record 8 times a task e.g. Put the red pill in the morning compartemen, for this task I will record 8 times the pill in random position in the area, and execute the  task. I will have for a specific pill and all the train cell: 3x8 = 24 recordings. Since I have 4 pills, this makes a total of 4x24recordings = 96 episdodes recorded for the train. Each recording lasts 45s, meaning the dataset is 1h15 long.
-
-- Because of the quality of the camera, the texts (morning, noon, evening, night) are not visible well enough to recognize, so I change them by symbols: (morning -> circle, noon-> cross, evening -> triangle, night -> square). It is much easier to recognize on camera. 
-
-- To compose a round = 4 episodes from balanced pill task. Each round uses one train cell per colour, chosen so that after 24 rounds, every train cell has appeared exactly 8 times. The order of the 4 episodes inside a round is random. A total of 24 rounds (=96/4) will be created. Knowing that a round = 4x45s=3min, 24 rounds will last 1h12 for the train.
 
 ## Annexe
 Prompt instruction for training:
