@@ -45,13 +45,13 @@
              <!-- pill container-->
             <body name="pill_box" pos="0.3545 -0.027 0">
                 <geom name="box_floor" type="box" size="0.0225 0.054 0.010"  pos="0 0 -0.009"       rgba="1 1 1 1"/>
-                <geom name="box_front" type="box" size="0.001 0.054 0.006"  pos="-0.0215 0 0.0075" rgba="1 1 1 1"/>
-                <geom name="box_back"  type="box" size="0.001 0.054 0.006"  pos="0.0215 0 0.0075"  rgba="1 1 1 1"/>
-                <geom name="box_left"  type="box" size="0.0225 0.001 0.006" pos="0 0.053 0.0075"   rgba="1 1 1 1"/>
-                <geom name="box_right" type="box" size="0.0225 0.001 0.006" pos="0 -0.053 0.0075"  rgba="1 1 1 1"/>
-                <geom name="box_div_1" type="box" size="0.0225 0.001 0.006" pos="0 0.0265 0.0075"  rgba="1 1 1 1"/>
-                <geom name="box_div_2" type="box" size="0.0225 0.001 0.006" pos="0 0 0.0075"       rgba="1 1 1 1"/>
-                <geom name="box_div_3" type="box" size="0.0225 0.001 0.006" pos="0 -0.0265 0.0075" rgba="1 1 1 1"/>
+                <geom name="box_front" type="box" size="0.001 0.054 0.0075"  pos="-0.0215 0 0.0075" rgba="1 1 1 1"/>
+                <geom name="box_back"  type="box" size="0.001 0.054 0.0075"  pos="0.0215 0 0.0075"  rgba="1 1 1 1"/>
+                <geom name="box_left"  type="box" size="0.0225 0.001 0.0075" pos="0 0.053 0.0075"   rgba="1 1 1 1"/>
+                <geom name="box_right" type="box" size="0.0225 0.001 0.0075" pos="0 -0.053 0.0075"  rgba="1 1 1 1"/>
+                <geom name="box_div_1" type="box" size="0.0225 0.001 0.0075" pos="0 0.0265 0.0075"  rgba="1 1 1 1"/>
+                <geom name="box_div_2" type="box" size="0.0225 0.001 0.0075" pos="0 0 0.0075"       rgba="1 1 1 1"/>
+                <geom name="box_div_3" type="box" size="0.0225 0.001 0.0075" pos="0 -0.0265 0.0075" rgba="1 1 1 1"/>
 
                 <!-- symbols: visual only (no collision), lying on the floor of each compartement -->
                 <geom name="sym_circle"   type="cylinder" size="0.009 0.0002"       pos="0 0.03975 0.0022"  contype="0" conaffinity="0" rgba="0 0 0 1"/>
@@ -70,7 +70,7 @@
         <!-- 4 types of pills-->
         <body name="pill_green" pos="0.2 0 0.03">
             <freejoint/>
-            <geom type="box" name="pill_green" size="0.0155 0.0075 0.005" condim="3" friction="1 .03 .003" rgba="0 1 0 1" solref="0.01 1"/>
+            <geom type="box" name="pill_green" size="0.0155 0.0075 0.005" condim="6" friction="1 .005 .0005" rgba="0 1 0 1" solref="0.01 1"/>
         </body> 
 
         <body name="pill_red" pos="0.2 0.05 0.03">
@@ -80,12 +80,12 @@
 
         <body name="pill_blue" pos="0.2 -0.05 0.03">
             <freejoint/>
-            <geom type="box" name="pill_blue" size="0.0155 0.0075 0.005" condim="6" friction="1 .005 .0005" rgba="1 0 0 1" solref="0.004 1" solimp="0.95 0.99 0.001" priority="2"/>
+            <geom type="box" name="pill_blue" size="0.0155 0.0075 0.005" condim="6" friction="1 .005 .0005" rgba="0 0 1 1" solref="0.004 1" solimp="0.95 0.99 0.001" priority="2"/>
         </body>
 
         <body name="pill_yellow" pos="0.2 -0.08 0.03">
             <freejoint/>
-            <geom type="box" name="pill_yellow" size="0.0155 0.0075 0.005" condim="6" friction="1 .005 .0005" rgba="1 0 0 1" solref="0.004 1" solimp="0.95 0.99 0.001" priority="2"/>
+            <geom type="box" name="pill_yellow" size="0.0155 0.0075 0.005" condim="6" friction="1 .005 .0005" rgba="1 1 0 1" solref="0.004 1" solimp="0.95 0.99 0.001" priority="2"/>
         </body>
         
 
