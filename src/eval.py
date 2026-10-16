@@ -32,19 +32,27 @@ EVAL_PROMPTS = { "Put the red pill in the square compartment.": SQUARE_POSE,
                 }
 
 if __name__ == "__main__":
-    test = True
-    fine_tuning_ckpt = "TomasAnderegg/pill_sorting_post_trained_a100"
+    test = False
+    # fine_tuning_ckpt = "TomasAnderegg/pill_sorting_post_trained_a100"
+    
+    fine_tuning_ckpt = "TomasAnderegg/pill_sorting_full_ft_a100"
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    is_lora = False 
 
     cfg = PreTrainedConfig.from_pretrained(fine_tuning_ckpt)
+    cfg.device = device
+    if is_lora:
+        # 2. base SmolVLA weights, built with YOUR config
+        base = SmolVLAPolicy.from_pretrained("lerobot/smolvla_base", config=cfg)
 
-    # 2. base SmolVLA weights, built with YOUR config
-    base = SmolVLAPolicy.from_pretrained("lerobot/smolvla_base", config=cfg)
+        # 3. add your LoRA adapter and merge it into the weights
+        policy = PeftModel.from_pretrained(base, fine_tuning_ckpt).merge_and_unload()
+    # policy.eval()
+    else:
+        policy = SmolVLAPolicy.from_pretrained(fine_tuning_ckpt, config=cfg)
 
-    # 3. add your LoRA adapter and merge it into the weights
-    policy = PeftModel.from_pretrained(base, fine_tuning_ckpt).merge_and_unload()
-    policy.eval()
-    device = "cuda" if torch.cuda.is_available() else "cpu"
     policy.to(device)
+    policy.eval()
 
     # policy = SmolVLAPolicy.from_pretrained(fine_tuning_ckpt)
     preprocessor, postprocessor = make_pre_post_processors(policy.config, pretrained_path=fine_tuning_ckpt, preprocessor_overrides={"device_processor": {"device": device}})
