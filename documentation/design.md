@@ -222,6 +222,7 @@ Implementing the geometries from the real measurements of the setup led to the f
 </p>
 gif: so101_and_scene_but_not_yet_there_disappear_2.gif
 
+
 The red pill suddenly vanished. This comes from the simulator's physics: the gripper presses the pill against the compartment and the resulting force launches the pill. Printing the red pill's position over the whole episode and focusing on the "explosion" shows that it jumps from around [0.2 -0.08 0.03] m to  [9.19, 0.41, 1.14] m. This reveals two position errors: the gripper does not reach the right compartment (in episode 0, the robot has to put the red pill in the circle compartment) and the gripper is too low (z-axis) so it touches the compartment and makes the pill explode.
 
 I rewatched the real recording at this exact moment to check whether my gripper was that low and whether the pill touched the compartment. It did not which confirms the position errors: in simulation, the gripper was off by a few centimetres. 
@@ -232,6 +233,7 @@ First, I visualised the gripper's contact point (a Mujoco site) to check whether
   <img src="../assets/so101_and_scene_but_not_yet_there_4.gif" alt="Offset-Free Tracking Demo" width="80%">
 </p>
 gif: so101_and_scene_but_not_yet_there_4.gif
+
 
 The contact point's position is acceptable so the error probably comes from the commands my script sends to Mujoco.
 
