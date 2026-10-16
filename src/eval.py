@@ -17,6 +17,7 @@ from lerobot.policies.factory import make_pre_post_processors
 
 ROLLOUT = 1
 FOLDED_POSITION = (0.03329552, -1.74533, 1.69, 1.30343497, -0.11124077, -0.14770727)
+NOT_FOLDED_POS = (0.03329552, -1.31, 0.77, 1.09,-1.29, 0.0 )
 RANDOM_PILLS = True     # True: random layout; False: keep the positions from the XML/keyframe
 SEED = 10
 
@@ -35,7 +36,8 @@ if __name__ == "__main__":
     test = False
     # fine_tuning_ckpt = "TomasAnderegg/pill_sorting_post_trained_a100"
     
-    fine_tuning_ckpt = "TomasAnderegg/pill_sorting_full_ft_a100"
+    # fine_tuning_ckpt = "TomasAnderegg/pill_sorting_full_ft_a100"
+    fine_tuning_ckpt = "TomasAnderegg/pill_sorting_expert_only_a100"
     device = "cuda" if torch.cuda.is_available() else "cpu"
     is_lora = False 
 
@@ -57,8 +59,8 @@ if __name__ == "__main__":
     # policy = SmolVLAPolicy.from_pretrained(fine_tuning_ckpt)
     preprocessor, postprocessor = make_pre_post_processors(policy.config, pretrained_path=fine_tuning_ckpt, preprocessor_overrides={"device_processor": {"device": device}})
 
-    print(policy.config.input_features)    # check the image/state keys it expects
-    print(policy.config.output_features)
+    # print(policy.config.input_features)    # check the image/state keys it expects
+    # print(policy.config.output_features)
 
     #TEST with episode 0
     if test :
@@ -66,15 +68,15 @@ if __name__ == "__main__":
         one_frame = ds[625] #tested on frame 150 and 625
         # print("-------------",ds.meta.tasks)
 
-        import numpy as np
-        batch = ds.hf_dataset.with_format("numpy")[:]
-        st, ep = batch["observation.state"], batch["episode_index"]
-        starts = np.array([st[ep == e][0] for e in np.unique(ep)])
-        np.set_printoptions(precision=1, suppress=True)
-        print("names:", ds.meta.features["observation.state"]["names"])
-        print("start pose, mean:", starts.mean(0))
-        print("start pose, min: ", starts.min(0))
-        print("start pose, max: ", starts.max(0))
+        # import numpy as np
+        # batch = ds.hf_dataset.with_format("numpy")[:]
+        # st, ep = batch["observation.state"], batch["episode_index"]
+        # starts = np.array([st[ep == e][0] for e in np.unique(ep)])
+        # np.set_printoptions(precision=1, suppress=True)
+        # print("names:", ds.meta.features["observation.state"]["names"])
+        # print("start pose, mean:", starts.mean(0))
+        # print("start pose, min: ", starts.min(0))
+        # print("start pose, max: ", starts.max(0))
 
         images= one_frame["observation.images.front"]
         obs= one_frame["observation.state"]
@@ -89,14 +91,14 @@ if __name__ == "__main__":
         action = policy.select_action(batch)
         action = postprocessor(action)
 
-        print("policy action:", action)
-        print("real action:", one_frame["action"])
+        # print("policy action:", action)
+        # print("real action:", one_frame["action"])
     else:
         # print("----",one_frame)
 
         # for i, task in enumerate(EVAL_PROMPTS):
         for i in range(ROLLOUT):
-            task = "Put the green pill in the square compartment." #"Put the blue pill in the cross compartment."
+            task = "Put the red pill in the circle compartment." #"Put the blue pill in the cross compartment."
 
             policy.reset()
 
@@ -105,7 +107,7 @@ if __name__ == "__main__":
             data = mujoco.MjData(model)
 
             cam_id = model.camera("wrist_cam").id
-            print(model.cam_fovy[cam_id], model.cam_sensorsize[cam_id])   # expect 61.0 and [0. 0.]
+            # print(model.cam_fovy[cam_id], model.cam_sensorsize[cam_id])   # expect 61.0 and [0. 0.]
             
             scene_option = mujoco.MjvOption()
             scene_option.flags[mujoco.mjtVisFlag.mjVIS_JOINT] = True
@@ -114,8 +116,8 @@ if __name__ == "__main__":
 
             # Pose init 
             # Robot initial pose :
-            data.qpos[:6] = FOLDED_POSITION # to set initial robot pose; [:6] corresponds to the robot joint values
-            data.ctrl = FOLDED_POSITION # to set initial robot pose
+            data.qpos[:6] = NOT_FOLDED_POS#FOLDED_POSITION # to set initial robot pose; [:6] corresponds to the robot joint values
+            data.ctrl = NOT_FOLDED_POS#FOLDED_POSITION # to set initial robot pose
             #Pill random pose:
             if RANDOM_PILLS:
                 rng = np.random.default_rng(i)

@@ -40,8 +40,8 @@ def transfer_to_mujoco(model, data, policy, preprocessor, postprocessor, task="t
     with mujoco.viewer.launch_passive(model, data) as viewer:
 
         #To select the wrist camera mounted on the robot
-        viewer.cam.type = mujoco.mjtCamera.mjCAMERA_FIXED
-        viewer.cam.fixedcamid = model.camera("wrist_cam").id
+        # viewer.cam.type = mujoco.mjtCamera.mjCAMERA_FIXED
+        # viewer.cam.fixedcamid = model.camera("wrist_cam").id
 
         start = time.time()
         with mujoco.Renderer(model, height=480, width=640) as renderer: #created outside the other while so it's not created every time
