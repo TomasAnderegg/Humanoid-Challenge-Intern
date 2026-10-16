@@ -220,6 +220,7 @@ Implementing the geometries from the real measurements of the setup led to the f
 <p align="center">
   <img src="../assets/so101_and_scene_but_not_yet_there_disappear_2.gif" alt="Offset-Free Tracking Demo" width="80%">
 </p>
+gif: so101_and_scene_but_not_yet_there_disappear_2.gif
 
 The red pill suddenly vanished. This comes from the simulator's physics: the gripper presses the pill against the compartment and the resulting force launches the pill. Printing the red pill's position over the whole episode and focusing on the "explosion" shows that it jumps from around [0.2 -0.08 0.03] m to  [9.19, 0.41, 1.14] m. This reveals two position errors: the gripper does not reach the right compartment (in episode 0, the robot has to put the red pill in the circle compartment) and the gripper is too low (z-axis) so it touches the compartment and makes the pill explode.
 
@@ -230,6 +231,7 @@ First, I visualised the gripper's contact point (a Mujoco site) to check whether
 <p align="center">
   <img src="../assets/so101_and_scene_but_not_yet_there_4.gif" alt="Offset-Free Tracking Demo" width="80%">
 </p>
+gif: so101_and_scene_but_not_yet_there_4.gif
 
 The contact point's position is acceptable so the error probably comes from the commands my script sends to Mujoco.
 
@@ -262,6 +264,7 @@ The error has the same order of magnitude as for the circle. Next, I had to find
 <p align="center">
   <img src="../assets/so101_problem_xy_plan_solved_offset.gif" alt="Offset-Free Tracking Demo" width="80%">
 </p>
+gif: so101_problem_xy_plan_solved_offset.gif
 
 ##### z-axis: shoulder_lift offset:
 
@@ -333,6 +336,7 @@ The angle uncertainty is $\approx 1.6°$. The difference between the near and fa
 <p align="center">
   <img src="../assets/so101_problem_xyz_solved_offset.gif" alt="Offset-Free Tracking Demo" width="80%">
 </p>
+gif: so101_problem_xyz_solved_offset.gif
 
 ### Closed loop evaluation:
 
@@ -353,12 +357,15 @@ I first evaluated the policy on a task the robot had never seen, to assess its u
 <p align="center">
   <img src="../assets/lora_first_video_folded_pose.gif" width="500">
 </p>
+gif: 
+lora_first_video_folded_pose.gif
 
 The robot stays in its folded pose and does not move at all. 3 runs gave the same results. I first thought it was a simulation problem so I deployed the policy on my real robot:
 
 <p align="center">
   <img src="../assets/folded_real.gif" width="500">
 </p>
+gif: folded_real.gif
 
 The problem persists. As a first experiment, I compared the actions produced by the model with the human's actions. I selected 2 distinct frames of episode 0 (F150 and F625), computed the actions with the fine tuned model and compared them with the human's: both match within 2.3°:
 
@@ -379,6 +386,7 @@ This rule out a broken model. Analysing the dataset recordings, I then noticed t
   <img src="../assets/not_folded_real_lora.gif" width="400">
   <img src="../assets/lora_first_video_not_folded_pose_gpu.gif" width="400"> 
 </p>
+gifs: lora_first_video_not_folded_pose_gpu.gif and not_folded_real_lora.gif
 
 These tests show that the robot get stuck in the folded pose whereas starting from a non folded pose lets the policy produce actions. In simulation, the robot finally moves towards the pill to accomplish its task: "Put the red pill in the circle compartment.".
 
@@ -391,6 +399,7 @@ To tackle the visual understanding problem, I could either re-record the dataset
 <p align="center">
   <img src="../assets/not_folded_real_full_ft.gif" width="500">
 </p>
+gif: not_folded_real_full_ft.gif
 
 Out of 4 runs, the robot picked the red pill only in the first one. In the following runs with the pills rearranged in different orders but the same task, the robot still struggled to spot the correct pill and to grab it. A final post training run used the same setup as the original paper (fine tuning only the action expert). It gave the same result on the task: "Put the red pill in the circle compartment." and did not improve performance. 
 
@@ -414,6 +423,7 @@ For the simulation, I used the SO101 XML provided by Google DeepMind. When loadi
 
   <img src="../assets/so101_tweaking_2_action0.gif" alt="Offset-Free Tracking Demo" width="80%">
 </p>
+gif: so101_tweaking_2_action0.gif
 
 ## Questions for myself
 Q1: The scale problem. Do the numbers.
