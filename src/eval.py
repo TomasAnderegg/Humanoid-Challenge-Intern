@@ -33,102 +33,59 @@ EVAL_PROMPTS = { "Put the red pill in the square compartment.": SQUARE_POSE,
                 }
 
 if __name__ == "__main__":
-    test = False
+
     # fine_tuning_ckpt = "TomasAnderegg/pill_sorting_post_trained_a100"
-    
     # fine_tuning_ckpt = "TomasAnderegg/pill_sorting_full_ft_a100"
     fine_tuning_ckpt = "TomasAnderegg/pill_sorting_expert_only_a100"
+    
     device = "cuda" if torch.cuda.is_available() else "cpu"
     is_lora = False 
 
     cfg = PreTrainedConfig.from_pretrained(fine_tuning_ckpt)
     cfg.device = device
     if is_lora:
-        # 2. base SmolVLA weights, built with YOUR config
         base = SmolVLAPolicy.from_pretrained("lerobot/smolvla_base", config=cfg)
 
-        # 3. add your LoRA adapter and merge it into the weights
         policy = PeftModel.from_pretrained(base, fine_tuning_ckpt).merge_and_unload()
-    # policy.eval()
+
     else:
         policy = SmolVLAPolicy.from_pretrained(fine_tuning_ckpt, config=cfg)
 
     policy.to(device)
     policy.eval()
 
-    # policy = SmolVLAPolicy.from_pretrained(fine_tuning_ckpt)
     preprocessor, postprocessor = make_pre_post_processors(policy.config, pretrained_path=fine_tuning_ckpt, preprocessor_overrides={"device_processor": {"device": device}})
 
-    # print(policy.config.input_features)    # check the image/state keys it expects
-    # print(policy.config.output_features)
 
-    #TEST with episode 0
-    if test :
-        ds = LeRobotDataset(repo_id= "TomasAnderegg/so101_pill_sorting_merged_v2",episodes = [0], download_videos = True)
-        one_frame = ds[625] #tested on frame 150 and 625
-        # print("-------------",ds.meta.tasks)
+    for i in range(ROLLOUT):
+        task = "Put the red pill in the circle compartment." #"Put the blue pill in the cross compartment."
 
-        # import numpy as np
-        # batch = ds.hf_dataset.with_format("numpy")[:]
-        # st, ep = batch["observation.state"], batch["episode_index"]
-        # starts = np.array([st[ep == e][0] for e in np.unique(ep)])
-        # np.set_printoptions(precision=1, suppress=True)
-        # print("names:", ds.meta.features["observation.state"]["names"])
-        # print("start pose, mean:", starts.mean(0))
-        # print("start pose, min: ", starts.min(0))
-        # print("start pose, max: ", starts.max(0))
+        policy.reset()
 
-        images= one_frame["observation.images.front"]
-        obs= one_frame["observation.state"]
-        task = one_frame["task"]
-        obs = {
-                "observation.state": obs,
-                "observation.images.front": images,  
-                "task": task,
-            }
+        # initialize the Mujoco env
+        model = mujoco.MjModel.from_xml_path(r"/home/tjga98/mujoco_menagerie/robotstudio_so101/scene_pills.xml")
+        data = mujoco.MjData(model)
 
-        batch = preprocessor(obs)
-        action = policy.select_action(batch)
-        action = postprocessor(action)
-
-        # print("policy action:", action)
-        # print("real action:", one_frame["action"])
-    else:
-        # print("----",one_frame)
-
-        # for i, task in enumerate(EVAL_PROMPTS):
-        for i in range(ROLLOUT):
-            task = "Put the red pill in the circle compartment." #"Put the blue pill in the cross compartment."
-
-            policy.reset()
-
-            # initialize the Mujoco env
-            model = mujoco.MjModel.from_xml_path(r"/home/tjga98/mujoco_menagerie/robotstudio_so101/scene_pills.xml")
-            data = mujoco.MjData(model)
-
-            cam_id = model.camera("wrist_cam").id
-            # print(model.cam_fovy[cam_id], model.cam_sensorsize[cam_id])   # expect 61.0 and [0. 0.]
-            
-            scene_option = mujoco.MjvOption()
-            scene_option.flags[mujoco.mjtVisFlag.mjVIS_JOINT] = True
-
-            mujoco.mj_resetData(model,data)
-
-            # Pose init 
-            # Robot initial pose :
-            data.qpos[:6] = NOT_FOLDED_POS#FOLDED_POSITION # to set initial robot pose; [:6] corresponds to the robot joint values
-            data.ctrl = NOT_FOLDED_POS#FOLDED_POSITION # to set initial robot pose
-            #Pill random pose:
-            if RANDOM_PILLS:
-                rng = np.random.default_rng(i)
-                layout = random_pill_positions(model, data, rng)
-                # print("Pill layout:", layout)
-
-
-            #Policy actions transfered to Mujoco
-
-            # policy_action = 0 #when the model will be loaded
-            done = False
-
-            done = transfer_to_mujoco(model=model, data=data, policy=policy, preprocessor=preprocessor, postprocessor=postprocessor,task = task)
+        cam_id = model.camera("wrist_cam").id
+        # print(model.cam_fovy[cam_id], model.cam_sensorsize[cam_id])   # expect 61.0 and [0. 0.]
         
+        scene_option = mujoco.MjvOption()
+        scene_option.flags[mujoco.mjtVisFlag.mjVIS_JOINT] = True
+
+        mujoco.mj_resetData(model,data)
+
+        # Pose init 
+        # Robot initial pose :
+        data.qpos[:6] = NOT_FOLDED_POS#FOLDED_POSITION # to set initial robot pose; [:6] corresponds to the robot joint values
+        data.ctrl = NOT_FOLDED_POS#FOLDED_POSITION # to set initial robot pose
+       
+        #Pill random pose:
+        if RANDOM_PILLS:
+            rng = np.random.default_rng(i)
+            layout = random_pill_positions(model, data, rng)
+            # print("Pill layout:", layout)
+
+        done = False
+
+        done = transfer_to_mujoco(model=model, data=data, policy=policy, preprocessor=preprocessor, postprocessor=postprocessor,task = task)
+    
